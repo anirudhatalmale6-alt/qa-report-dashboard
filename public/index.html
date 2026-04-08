@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QA Report Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 17H7A5 5 0 0 1 7 7h2"/>
+          <path d="M15 7h2a5 5 0 1 1 0 10h-2"/>
+          <line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+        <h1>QA Report Dashboard</h1>
+      </div>
+      <div class="header-meta" id="headerMeta"></div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Projects View -->
+    <div id="projectsView">
+      <div class="section-header">
+        <h2>Projects</h2>
+      </div>
+      <div id="projectCards" class="project-grid"></div>
+      <div id="emptyState" class="empty-state" style="display:none">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+        <h3>No reports yet</h3>
+        <p>Run your tests and generate Allure reports to see them here.</p>
+        <p class="hint">Reports should be placed in: <code>reports/&lt;project-name&gt;/&lt;run-folder&gt;/</code></p>
+      </div>
+    </div>
+
+    <!-- Runs View -->
+    <div id="runsView" style="display:none">
+      <div class="section-header">
+        <button class="back-btn" onclick="showProjects()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"/>
+            <polyline points="12 19 5 12 12 5"/>
+          </svg>
+          Back to Projects
+        </button>
+        <h2 id="runsTitle"></h2>
+      </div>
+      <div class="runs-summary" id="runsSummary"></div>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Status:</label>
+          <select id="statusFilter" onchange="filterRuns()">
+            <option value="all">All</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+        <div class="search-box">
+          <input type="text" id="searchBox" placeholder="Search runs..." oninput="filterRuns()">
+        </div>
+      </div>
+      <div id="runsList" class="runs-list"></div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
