@@ -113,6 +113,17 @@
     background: #21262d;
   }
   .nav-l2:hover { background: #1c2129; color: #f0f6fc; }
+  .nav-l2.active { background: #1c2129; color: #58a6ff; }
+  .nav-l2.active::before { background: #58a6ff; width: 2px; }
+  .nav-l2.active .dot { background: #58a6ff; }
+  .nav-l2 .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #484f58;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
   .nav-l2 .chevron {
     font-size: 9px;
     color: #484f58;
@@ -321,75 +332,30 @@
     <h1><span class="icon">QA</span> Automation Reports</h1>
   </div>
 
-  <div class="sidebar-label">Process Areas</div>
+  <div class="sidebar-label">Applications</div>
 
-  <!-- ES -->
-  <div class="nav-l1" onclick="toggle(this,'sub-es')">ES <span class="chevron">&#9654;</span></div>
-  <div id="sub-es" class="sub-l1">
-    <div class="nav-l2" onclick="toggle(this,'sub-es-ess')">ESS <span class="chevron">&#9654;</span></div>
-    <div id="sub-es-ess" class="sub-l2">
-      <div class="nav-l3" onclick="loadRuns('ES','ESS','App_Migration',this)"><span class="dot"></span>App Migration</div>
-      <div class="nav-l3" onclick="loadRuns('ES','ESS','ADA',this)"><span class="dot"></span>ADA</div>
-      <div class="nav-l3" onclick="loadRuns('ES','ESS','Maintenance',this)"><span class="dot"></span>Maintenance</div>
-    </div>
-    <div class="nav-l2" onclick="toggle(this,'sub-es-clarety')">Clarety <span class="chevron">&#9654;</span></div>
-    <div id="sub-es-clarety" class="sub-l2">
-      <div class="nav-l3" onclick="loadRuns('ES','Clarety','App_Migration',this)"><span class="dot"></span>App Migration</div>
-      <div class="nav-l3" onclick="loadRuns('ES','Clarety','ADA',this)"><span class="dot"></span>ADA</div>
-      <div class="nav-l3" onclick="loadRuns('ES','Clarety','Maintenance',this)"><span class="dot"></span>Maintenance</div>
-    </div>
-    <div class="nav-l2" onclick="toggle(this,'sub-es-miaccount')">MiAccount <span class="chevron">&#9654;</span></div>
-    <div id="sub-es-miaccount" class="sub-l2">
-      <div class="nav-l3" onclick="loadRuns('ES','MiAccount','App_Migration',this)"><span class="dot"></span>App Migration</div>
-      <div class="nav-l3" onclick="loadRuns('ES','MiAccount','ADA',this)"><span class="dot"></span>ADA</div>
-      <div class="nav-l3" onclick="loadRuns('ES','MiAccount','Maintenance',this)"><span class="dot"></span>Maintenance</div>
-    </div>
+  <!-- ESS -->
+  <div class="nav-l1" onclick="toggle(this,'sub-ess')">ESS <span class="chevron">&#9654;</span></div>
+  <div id="sub-ess" class="sub-l1">
+    <div class="nav-l2" onclick="loadRuns('ESS','App_Migration',this)"><span class="dot"></span>App Migration</div>
+    <div class="nav-l2" onclick="loadRuns('ESS','ADA',this)"><span class="dot"></span>ADA</div>
+    <div class="nav-l2" onclick="loadRuns('ESS','Maintenance',this)"><span class="dot"></span>Maintenance</div>
   </div>
 
-  <!-- CS -->
-  <div class="nav-l1" onclick="toggle(this,'sub-cs')">CS <span class="chevron">&#9654;</span></div>
-  <div id="sub-cs" class="sub-l1">
-    <div class="nav-l2" onclick="toggle(this,'sub-cs-ess')">ESS <span class="chevron">&#9654;</span></div>
-    <div id="sub-cs-ess" class="sub-l2">
-      <div class="nav-l3" onclick="loadRuns('CS','ESS','App_Migration',this)"><span class="dot"></span>App Migration</div>
-      <div class="nav-l3" onclick="loadRuns('CS','ESS','ADA',this)"><span class="dot"></span>ADA</div>
-      <div class="nav-l3" onclick="loadRuns('CS','ESS','Maintenance',this)"><span class="dot"></span>Maintenance</div>
-    </div>
-    <div class="nav-l2" onclick="toggle(this,'sub-cs-clarety')">Clarety <span class="chevron">&#9654;</span></div>
-    <div id="sub-cs-clarety" class="sub-l2">
-      <div class="nav-l3" onclick="loadRuns('CS','Clarety','App_Migration',this)"><span class="dot"></span>App Migration</div>
-      <div class="nav-l3" onclick="loadRuns('CS','Clarety','ADA',this)"><span class="dot"></span>ADA</div>
-      <div class="nav-l3" onclick="loadRuns('CS','Clarety','Maintenance',this)"><span class="dot"></span>Maintenance</div>
-    </div>
-    <div class="nav-l2" onclick="toggle(this,'sub-cs-miaccount')">MiAccount <span class="chevron">&#9654;</span></div>
-    <div id="sub-cs-miaccount" class="sub-l2">
-      <div class="nav-l3" onclick="loadRuns('CS','MiAccount','App_Migration',this)"><span class="dot"></span>App Migration</div>
-      <div class="nav-l3" onclick="loadRuns('CS','MiAccount','ADA',this)"><span class="dot"></span>ADA</div>
-      <div class="nav-l3" onclick="loadRuns('CS','MiAccount','Maintenance',this)"><span class="dot"></span>Maintenance</div>
-    </div>
+  <!-- Clarety -->
+  <div class="nav-l1" onclick="toggle(this,'sub-clarety')">Clarety <span class="chevron">&#9654;</span></div>
+  <div id="sub-clarety" class="sub-l1">
+    <div class="nav-l2" onclick="loadRuns('Clarety','App_Migration',this)"><span class="dot"></span>App Migration</div>
+    <div class="nav-l2" onclick="loadRuns('Clarety','ADA',this)"><span class="dot"></span>ADA</div>
+    <div class="nav-l2" onclick="loadRuns('Clarety','Maintenance',this)"><span class="dot"></span>Maintenance</div>
   </div>
 
-  <!-- SS -->
-  <div class="nav-l1" onclick="toggle(this,'sub-ss')">SS <span class="chevron">&#9654;</span></div>
-  <div id="sub-ss" class="sub-l1">
-    <div class="nav-l2" onclick="toggle(this,'sub-ss-ess')">ESS <span class="chevron">&#9654;</span></div>
-    <div id="sub-ss-ess" class="sub-l2">
-      <div class="nav-l3" onclick="loadRuns('SS','ESS','App_Migration',this)"><span class="dot"></span>App Migration</div>
-      <div class="nav-l3" onclick="loadRuns('SS','ESS','ADA',this)"><span class="dot"></span>ADA</div>
-      <div class="nav-l3" onclick="loadRuns('SS','ESS','Maintenance',this)"><span class="dot"></span>Maintenance</div>
-    </div>
-    <div class="nav-l2" onclick="toggle(this,'sub-ss-clarety')">Clarety <span class="chevron">&#9654;</span></div>
-    <div id="sub-ss-clarety" class="sub-l2">
-      <div class="nav-l3" onclick="loadRuns('SS','Clarety','App_Migration',this)"><span class="dot"></span>App Migration</div>
-      <div class="nav-l3" onclick="loadRuns('SS','Clarety','ADA',this)"><span class="dot"></span>ADA</div>
-      <div class="nav-l3" onclick="loadRuns('SS','Clarety','Maintenance',this)"><span class="dot"></span>Maintenance</div>
-    </div>
-    <div class="nav-l2" onclick="toggle(this,'sub-ss-miaccount')">MiAccount <span class="chevron">&#9654;</span></div>
-    <div id="sub-ss-miaccount" class="sub-l2">
-      <div class="nav-l3" onclick="loadRuns('SS','MiAccount','App_Migration',this)"><span class="dot"></span>App Migration</div>
-      <div class="nav-l3" onclick="loadRuns('SS','MiAccount','ADA',this)"><span class="dot"></span>ADA</div>
-      <div class="nav-l3" onclick="loadRuns('SS','MiAccount','Maintenance',this)"><span class="dot"></span>Maintenance</div>
-    </div>
+  <!-- MiAccount -->
+  <div class="nav-l1" onclick="toggle(this,'sub-miaccount')">MiAccount <span class="chevron">&#9654;</span></div>
+  <div id="sub-miaccount" class="sub-l1">
+    <div class="nav-l2" onclick="loadRuns('MiAccount','App_Migration',this)"><span class="dot"></span>App Migration</div>
+    <div class="nav-l2" onclick="loadRuns('MiAccount','ADA',this)"><span class="dot"></span>ADA</div>
+    <div class="nav-l2" onclick="loadRuns('MiAccount','Maintenance',this)"><span class="dot"></span>Maintenance</div>
   </div>
 </nav>
 
@@ -403,7 +369,7 @@
     <div class="welcome">
       <div class="welcome-icon">&#128202;</div>
       <h2>Welcome to QA Reports</h2>
-      <p>Select a system, application, and project from the sidebar to view test runs</p>
+      <p>Select an application and project from the sidebar to view test runs</p>
     </div>
   </div>
 </div>
@@ -416,29 +382,29 @@ function toggle(item, subId) {
 }
 
 function setActive(el) {
-  document.querySelectorAll('.nav-l3').forEach(function(item) {
+  document.querySelectorAll('.nav-l2').forEach(function(item) {
     item.classList.remove('active');
   });
   if (el) el.classList.add('active');
 }
 
-async function loadRuns(system, app, project, el) {
+async function loadRuns(app, project, el) {
   setActive(el);
 
   var breadcrumb = document.getElementById('breadcrumb');
-  breadcrumb.innerHTML = '<span>' + system + '</span> / <span>' + app + '</span> / <span>' + project.replace('_',' ') + '</span>';
+  breadcrumb.innerHTML = '<span>' + app + '</span> / <span>' + project.replace('_',' ') + '</span>';
 
   var content = document.getElementById('content');
   content.innerHTML = '<div class="loading"><div class="spinner"></div> Loading runs...</div>';
 
   try {
-    var res = await fetch('/api/' + system + '/' + app + '/' + project + '/runs');
+    var res = await fetch('/api/' + app + '/' + project + '/runs');
     var runs = await res.json();
 
     if (runs.length === 0) {
       content.innerHTML =
-        '<div class="section-header"><div class="section-title">' + system + ' &rsaquo; ' + app + ' &rsaquo; ' + project.replace('_',' ') + '</div></div>' +
-        '<div class="empty-state"><div class="es-icon">&#128193;</div><p>No runs found yet.<br>Run tests with --project=' + system + '/' + app + '/' + project + ' to see results here.</p></div>';
+        '<div class="section-header"><div class="section-title">' + app + ' &rsaquo; ' + project.replace('_',' ') + '</div></div>' +
+        '<div class="empty-state"><div class="es-icon">&#128193;</div><p>No runs found yet.<br>Run tests with --project=' + app + '/' + project + ' to see results here.</p></div>';
       return;
     }
 
@@ -458,7 +424,7 @@ async function loadRuns(system, app, project, el) {
     html += '<div class="stat-card rate"><div class="value">' + passRate + '%</div><div class="label">Pass Rate</div></div>';
     html += '</div>';
 
-    html += '<div class="section-header"><div class="section-title">' + system + ' &rsaquo; ' + app + ' &rsaquo; ' + project.replace('_',' ') + '</div><div class="section-badge">' + runs.length + ' run' + (runs.length !== 1 ? 's' : '') + '</div></div>';
+    html += '<div class="section-header"><div class="section-title">' + app + ' &rsaquo; ' + project.replace('_',' ') + '</div><div class="section-badge">' + runs.length + ' run' + (runs.length !== 1 ? 's' : '') + '</div></div>';
 
     runs.forEach(function(run) {
       var date = new Date(run.date).toLocaleString();

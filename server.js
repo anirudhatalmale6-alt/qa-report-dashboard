@@ -9,15 +9,15 @@ const REPORTS_DIR = path.join(__dirname, "reports");
 app.use("/dashboard", express.static(path.join(__dirname, "public")));
 app.use("/reports", express.static(REPORTS_DIR));
 
-// API: list runs for system/app/project (3-level)
-// e.g. /api/ES/ESS/App_Migration/runs
-app.get("/api/:system/:app/:project/runs", (req, res) => {
-  const { system, app: appName, project } = req.params;
-  const projectPath = path.join(REPORTS_DIR, system, appName, project);
+// API: list runs for app/project (2-level)
+// e.g. /api/ESS/App_Migration/runs
+app.get("/api/:app/:project/runs", (req, res) => {
+  const { app: appName, project } = req.params;
+  const projectPath = path.join(REPORTS_DIR, appName, project);
   if (!fs.existsSync(projectPath)) {
     return res.json([]);
   }
-  const reportBase = system + "/" + appName + "/" + project;
+  const reportBase = appName + "/" + project;
   const runs = getRuns(projectPath, reportBase);
   res.json(runs);
 });
