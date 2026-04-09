@@ -7,7 +7,7 @@ import pandas as pd
 from typing import Dict, Any
 from playwright.sync_api import sync_playwright
 from lib.logger import logger
-from lib.test_data_manager import load_test_data, write_to_cell
+from lib.test_data_manager import load_test_data, write_to_cell, init_results_csv
 from lib.constants import CONF_PATH, TEST_PLAN_PATH
 from lib.test_data_manager import check_file_writable
 import shutil
@@ -183,6 +183,19 @@ def pytest_sessionstart(session):
     if os.path.exists(results_dir):
         shutil.rmtree(results_dir)
     os.makedirs(results_dir)
+
+    # Initialize results CSVs from Excel (read-only copy for writing results)
+    # This reads the data sheets once and creates CSV copies
+    # All writes during execution go to CSV, keeping Excel safe
+    try:
+        df = pd.read_excel(TEST_PLAN_PATH, sheet_name='TestPlan')
+        sheet_names = set(df['SheetName'].dropna().unique())
+        sheet_names.add('TestPlan')  # Also track test status in CSV
+        for sn in sheet_names:
+            init_results_csv(str(sn).strip(), TEST_PLAN_PATH)
+        logger.info(f"Initialized results CSVs for sheets: {sheet_names}")
+    except Exception as e:
+        logger.warning(f"Could not initialize results CSVs: {e}")
 
 
 #######################
