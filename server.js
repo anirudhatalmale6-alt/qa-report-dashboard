@@ -33,27 +33,15 @@ app.get("/api/projects", (req, res) => {
   res.json(projects);
 });
 
-// API: list runs for a project/system (supports both 1-level and 2-level)
-app.get("/api/projects/:project/runs", (req, res) => {
-  const projectPath = path.join(REPORTS_DIR, req.params.project);
+// API: list runs for a category/subproject
+app.get("/api/:category/:subproject/runs", (req, res) => {
+  const { category, subproject } = req.params;
+  const projectPath = path.join(REPORTS_DIR, category, subproject);
   if (!fs.existsSync(projectPath)) {
-    return res.status(404).json({ error: "Project not found" });
+    return res.json([]);
   }
-  const runs = getRuns(projectPath, req.params.project);
-  res.json(runs);
-});
-
-app.get("/api/projects/:project/:system/runs", (req, res) => {
-  const systemPath = path.join(
-    REPORTS_DIR,
-    req.params.project,
-    req.params.system
-  );
-  if (!fs.existsSync(systemPath)) {
-    return res.status(404).json({ error: "System not found" });
-  }
-  const reportBase = `${req.params.project}/${req.params.system}`;
-  const runs = getRuns(systemPath, reportBase);
+  const reportBase = `${category}/${subproject}`;
+  const runs = getRuns(projectPath, reportBase);
   res.json(runs);
 });
 
