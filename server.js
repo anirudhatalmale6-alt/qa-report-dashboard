@@ -79,6 +79,63 @@ function parseRunDate(folderName) {
   return new Date().toISOString();
 }
 
+// API: get CSV results for a specific run
+// e.g. /api/ESS/App_Migration/20260409_120000/results
+app.get("/api/:app/:project/:runId/results", (req, res) => {
+  const { app: appName, project, runId } = req.params;
+  const csvDir = path.join(REPORTS_DIR, appName, project, runId, "csv-results");
+  if (!fs.existsSync(csvDir)) {
+    return res.json({ sheets: [] });
+  }
+
+  const csvFiles = fs.readdirSync(csvDir).filter(f => f.endsWith(".csv") && f.startsWith("results_"));
+  const sheets = [];
+
+  for (const file of csvFiles) {
+    const sheetName = file.replace("results_", "").replace(".csv", "");
+    const content = fs.readFileSync(path.join(csvDir, file), "utf-8");
+    const lines = content.split("\n").filter(l => l.trim());
+    if (lines.length === 0) continue;
+
+    const headers = parseCSVLine(lines[0]);
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      const row = {};
+      headers.forEach((h, idx) => { row[h] = values[idx] || ""; });
+      rows.push(row);
+    }
+    sheets.push({ name: sheetName, headers, rows });
+  }
+
+  res.json({ sheets });
+});
+
+// Simple CSV line parser (handles quoted fields with commas)
+function parseCSVLine(line) {
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
 app.get("/", (req, res) => {
   res.redirect("/dashboard");
 });

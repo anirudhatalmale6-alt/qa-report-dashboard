@@ -58,5 +58,22 @@ if (Test-Path $widgetSummary) {
     Write-Host "WARNING: No widgets/summary.json found in report. Dashboard stats may be empty."
 }
 
+# Copy results CSV files if they exist
+$resultsDir = "test-results"
+if (Test-Path $resultsDir) {
+    $csvFiles = Get-ChildItem -Path $resultsDir -Filter "results_*.csv"
+    if ($csvFiles.Count -gt 0) {
+        $csvDestDir = Join-Path $destDir "csv-results"
+        New-Item -ItemType Directory -Path $csvDestDir -Force | Out-Null
+        foreach ($csv in $csvFiles) {
+            Copy-Item -Path $csv.FullName -Destination $csvDestDir -Force
+            Write-Host "CSV copied: $($csv.Name)"
+        }
+        Write-Host "Results CSVs published ($($csvFiles.Count) files)"
+    }
+} else {
+    Write-Host "No test-results/ folder found. Skipping CSV publish."
+}
+
 Write-Host "Done! Report published as: $ProjectName/$timestamp"
 Write-Host "Open the dashboard at http://localhost:3000/dashboard to view it."

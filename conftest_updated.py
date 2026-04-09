@@ -297,6 +297,13 @@ def test_context(request, env_config, playwright_instance, prod_browser):
     logger.info(f"[{test_info['test_name']}] Loaded Test data: {row['DataReference']} from sheet {row['SheetName']}")
     test_info["test_data"] = test_data
 
+    # Write TestMethod to results CSV so you can filter results by method
+    try:
+        write_to_cell(row["DataReference"], 'TestMethod', row.get("TestMethod", ""), row["SheetName"])
+        write_to_cell(row["DataReference"], 'TestName', row.get("TestName", ""), row["SheetName"])
+    except Exception:
+        pass
+
     if test_type == "UI":
         if mode == "prod" and prod_browser is not None:
             # PRODUCTION MODE: Reuse session-scoped browser

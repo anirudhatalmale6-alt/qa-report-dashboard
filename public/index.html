@@ -319,6 +319,91 @@
   .spinner { width: 18px; height: 18px; border: 2px solid #21262d; border-top-color: #58a6ff; border-radius: 50%; animation: spin 0.6s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  .btn-results {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; background: transparent;
+    border: 1px solid #30363d; border-radius: 6px;
+    color: #d29922; font-size: 13px; font-weight: 500;
+    cursor: pointer; text-decoration: none; transition: all 0.15s ease;
+    margin-right: 8px;
+  }
+  .btn-results:hover { background: #d2992215; border-color: #d2992240; }
+
+  /* Results Modal Overlay */
+  .results-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;
+  }
+  .results-overlay.active { display: flex; }
+  .results-modal {
+    background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+    width: 92vw; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .results-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid #21262d;
+  }
+  .results-modal-header h3 { font-size: 16px; color: #f0f6fc; }
+  .results-close {
+    background: none; border: none; color: #8b949e; font-size: 22px;
+    cursor: pointer; padding: 4px 8px; border-radius: 4px;
+  }
+  .results-close:hover { background: #21262d; color: #f0f6fc; }
+
+  .results-toolbar {
+    display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+    border-bottom: 1px solid #21262d; flex-wrap: wrap;
+  }
+  .results-search {
+    flex: 1; min-width: 200px; padding: 8px 12px; background: #0d1117;
+    border: 1px solid #21262d; border-radius: 6px; color: #e1e4e8;
+    font-size: 13px; outline: none;
+  }
+  .results-search:focus { border-color: #58a6ff; }
+  .results-search::placeholder { color: #484f58; }
+
+  .results-filter {
+    padding: 7px 12px; background: #0d1117; border: 1px solid #21262d;
+    border-radius: 6px; color: #e1e4e8; font-size: 13px; cursor: pointer; outline: none;
+  }
+  .results-filter:focus { border-color: #58a6ff; }
+  .results-filter option { background: #0d1117; }
+
+  .results-tabs {
+    display: flex; gap: 4px; padding: 0 20px; border-bottom: 1px solid #21262d;
+  }
+  .results-tab {
+    padding: 10px 16px; font-size: 13px; color: #8b949e; cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.15s ease;
+  }
+  .results-tab:hover { color: #c9d1d9; }
+  .results-tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+
+  .results-count {
+    font-size: 12px; color: #8b949e; padding: 8px 20px; border-bottom: 1px solid #21262d;
+  }
+
+  .results-table-wrap { overflow: auto; flex: 1; }
+  .results-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  .results-table th {
+    position: sticky; top: 0; background: #1c2129; color: #8b949e;
+    font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 10px 12px; text-align: left; border-bottom: 1px solid #21262d;
+    white-space: nowrap; cursor: pointer; user-select: none;
+  }
+  .results-table th:hover { color: #c9d1d9; }
+  .results-table td {
+    padding: 8px 12px; border-bottom: 1px solid #21262d; color: #c9d1d9;
+    max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .results-table tr:hover td { background: #1c2129; }
+
+  .status-passed { color: #3fb950; font-weight: 600; }
+  .status-failed { color: #f85149; font-weight: 600; }
+  .status-empty { color: #484f58; }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
@@ -374,7 +459,36 @@
   </div>
 </div>
 
+<!-- Results Modal -->
+<div class="results-overlay" id="resultsOverlay" onclick="if(event.target===this)closeResults()">
+  <div class="results-modal">
+    <div class="results-modal-header">
+      <h3 id="resultsTitle">Test Results</h3>
+      <button class="results-close" onclick="closeResults()">&times;</button>
+    </div>
+    <div class="results-tabs" id="resultsTabs"></div>
+    <div class="results-toolbar">
+      <input type="text" class="results-search" id="resultsSearch" placeholder="Search by MemberID, DataReference, TestMethod, status..." oninput="filterResults()">
+      <select class="results-filter" id="statusFilter" onchange="filterResults()">
+        <option value="">All Statuses</option>
+        <option value="Passed">Passed</option>
+        <option value="Failed">Failed</option>
+      </select>
+    </div>
+    <div class="results-count" id="resultsCount"></div>
+    <div class="results-table-wrap">
+      <table class="results-table">
+        <thead id="resultsHead"></thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <script>
+var currentResultsData = null;
+var currentSheetIndex = 0;
+
 function toggle(item, subId) {
   var sub = document.getElementById(subId);
   sub.classList.toggle('open');
@@ -446,7 +560,7 @@ async function loadRuns(app, project, el) {
       html += '<div class="run-stat t"><div class="num">' + run.total + '</div><div class="lbl">Total</div></div>';
       html += '</div>';
       html += '<div class="run-duration">' + duration + '</div>';
-      html += '<div class="run-action"><a class="btn-open" href="' + run.reportUrl + '" target="_blank">&#8599; Open</a></div>';
+      html += '<div class="run-action"><button class="btn-results" onclick="openResults(\'' + app + '\',\'' + project + '\',\'' + run.id + '\')">&#9776; Results</button><a class="btn-open" href="' + run.reportUrl + '" target="_blank">&#8599; Open</a></div>';
       html += '</div>';
     });
 
@@ -454,6 +568,144 @@ async function loadRuns(app, project, el) {
   } catch (err) {
     content.innerHTML = '<div class="empty-state"><div class="es-icon">&#9888;</div><p style="color:#f85149;">Error loading runs: ' + err.message + '</p></div>';
   }
+}
+
+async function openResults(app, project, runId) {
+  var overlay = document.getElementById('resultsOverlay');
+  overlay.classList.add('active');
+  document.getElementById('resultsTitle').textContent = app + ' / ' + project.replace('_',' ') + ' - ' + runId;
+  document.getElementById('resultsHead').innerHTML = '';
+  document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#8b949e;text-align:center;">Loading results...</td></tr>';
+  document.getElementById('resultsTabs').innerHTML = '';
+  document.getElementById('resultsCount').textContent = '';
+  document.getElementById('resultsSearch').value = '';
+  document.getElementById('statusFilter').value = '';
+
+  try {
+    var res = await fetch('/api/' + app + '/' + project + '/' + runId + '/results');
+    var data = await res.json();
+    currentResultsData = data;
+    currentSheetIndex = 0;
+
+    if (!data.sheets || data.sheets.length === 0) {
+      document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#8b949e;text-align:center;">No CSV results found for this run.<br>Results are available after publishing with the updated allure-publish.ps1</td></tr>';
+      return;
+    }
+
+    // Build tabs (skip TestPlan, show data sheets first)
+    var tabsHtml = '';
+    data.sheets.forEach(function(sheet, i) {
+      var cls = i === 0 ? ' active' : '';
+      tabsHtml += '<div class="results-tab' + cls + '" onclick="switchSheet(' + i + ',this)">' + sheet.name + ' (' + sheet.rows.length + ')</div>';
+    });
+    document.getElementById('resultsTabs').innerHTML = tabsHtml;
+
+    renderSheet(0);
+  } catch(err) {
+    document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#f85149;text-align:center;">Error: ' + err.message + '</td></tr>';
+  }
+}
+
+function switchSheet(index, tabEl) {
+  currentSheetIndex = index;
+  document.querySelectorAll('.results-tab').forEach(function(t) { t.classList.remove('active'); });
+  if (tabEl) tabEl.classList.add('active');
+  document.getElementById('resultsSearch').value = '';
+  document.getElementById('statusFilter').value = '';
+  renderSheet(index);
+}
+
+function renderSheet(index) {
+  var sheet = currentResultsData.sheets[index];
+  if (!sheet) return;
+
+  // Priority columns to show first
+  var priority = ['DataReference','MemberID','TestMethod','TestName','FinalStatus','StackTrace','ErrorMessage','MemberStatus','Scenario','Registered','Timestamp'];
+  var headers = [];
+  priority.forEach(function(h) { if (sheet.headers.indexOf(h) !== -1) headers.push(h); });
+  sheet.headers.forEach(function(h) { if (headers.indexOf(h) === -1) headers.push(h); });
+
+  // Build header
+  var headHtml = '<tr>';
+  headers.forEach(function(h) { headHtml += '<th onclick="sortResults(\'' + h + '\')">' + h + '</th>'; });
+  headHtml += '</tr>';
+  document.getElementById('resultsHead').innerHTML = headHtml;
+
+  renderRows(sheet.rows, headers);
+}
+
+function renderRows(rows, headers) {
+  var bodyHtml = '';
+  rows.forEach(function(row) {
+    bodyHtml += '<tr>';
+    headers.forEach(function(h) {
+      var val = row[h] || '';
+      var cls = '';
+      if (h === 'FinalStatus') {
+        if (val === 'Passed') cls = ' class="status-passed"';
+        else if (val === 'Failed') cls = ' class="status-failed"';
+        else if (!val) cls = ' class="status-empty"';
+      }
+      bodyHtml += '<td' + cls + ' title="' + String(val).replace(/"/g, '&quot;') + '">' + val + '</td>';
+    });
+    bodyHtml += '</tr>';
+  });
+
+  if (rows.length === 0) {
+    bodyHtml = '<tr><td colspan="' + headers.length + '" style="padding:30px;color:#8b949e;text-align:center;">No matching results</td></tr>';
+  }
+
+  document.getElementById('resultsBody').innerHTML = bodyHtml;
+  document.getElementById('resultsCount').textContent = rows.length + ' row' + (rows.length !== 1 ? 's' : '') + ' shown';
+}
+
+function filterResults() {
+  var sheet = currentResultsData.sheets[currentSheetIndex];
+  if (!sheet) return;
+
+  var searchTerm = document.getElementById('resultsSearch').value.toLowerCase();
+  var statusFilter = document.getElementById('statusFilter').value;
+
+  var filtered = sheet.rows.filter(function(row) {
+    // Status filter
+    if (statusFilter && (row['FinalStatus'] || '') !== statusFilter) return false;
+    // Search filter (search across all columns)
+    if (searchTerm) {
+      var match = false;
+      Object.values(row).forEach(function(v) {
+        if (String(v).toLowerCase().indexOf(searchTerm) !== -1) match = true;
+      });
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  // Rebuild headers (same priority order)
+  var priority = ['DataReference','MemberID','TestMethod','TestName','FinalStatus','StackTrace','ErrorMessage','MemberStatus','Scenario','Registered','Timestamp'];
+  var headers = [];
+  priority.forEach(function(h) { if (sheet.headers.indexOf(h) !== -1) headers.push(h); });
+  sheet.headers.forEach(function(h) { if (headers.indexOf(h) === -1) headers.push(h); });
+
+  renderRows(filtered, headers);
+}
+
+var sortColumn = '';
+var sortAsc = true;
+function sortResults(col) {
+  if (sortColumn === col) { sortAsc = !sortAsc; } else { sortColumn = col; sortAsc = true; }
+  var sheet = currentResultsData.sheets[currentSheetIndex];
+  sheet.rows.sort(function(a, b) {
+    var va = (a[col] || '').toLowerCase();
+    var vb = (b[col] || '').toLowerCase();
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+  filterResults();
+}
+
+function closeResults() {
+  document.getElementById('resultsOverlay').classList.remove('active');
 }
 </script>
 
