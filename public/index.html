@@ -17,8 +17,8 @@
 
   /* Sidebar */
   .sidebar {
-    width: 260px;
-    min-width: 260px;
+    width: 270px;
+    min-width: 270px;
     background: #161b22;
     border-right: 1px solid #21262d;
     height: 100vh;
@@ -65,95 +65,115 @@
     padding: 16px 20px 8px;
   }
 
-  .nav-item {
+  /* Level 1 - Systems (ES, CS, SS) */
+  .nav-l1 {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 20px;
-    color: #c9d1d9;
+    padding: 9px 20px;
+    color: #f0f6fc;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
     user-select: none;
   }
-
-  .nav-item:hover {
-    background: #1c2129;
-    color: #f0f6fc;
-  }
-
-  .nav-item .chevron {
+  .nav-l1:hover { background: #1c2129; }
+  .nav-l1 .chevron {
     font-size: 10px;
     color: #484f58;
     transition: transform 0.2s ease;
   }
+  .nav-l1.expanded .chevron { transform: rotate(90deg); }
 
-  .nav-item.expanded .chevron {
-    transform: rotate(90deg);
-  }
+  .sub-l1 { display: none; }
+  .sub-l1.open { display: block; }
 
-  .nav-sub {
-    display: none;
-    background: #0d1117;
-  }
-
-  .nav-sub.open {
-    display: block;
-  }
-
-  .nav-sub-item {
+  /* Level 2 - Applications (ESS, Clarety, MiAccount) */
+  .nav-l2 {
     display: flex;
     align-items: center;
-    padding: 7px 20px 7px 44px;
-    color: #8b949e;
+    justify-content: space-between;
+    padding: 7px 20px 7px 36px;
+    color: #c9d1d9;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
+    user-select: none;
     position: relative;
   }
-
-  .nav-sub-item::before {
+  .nav-l2::before {
     content: '';
     position: absolute;
-    left: 32px;
+    left: 26px;
     top: 0;
     bottom: 0;
     width: 1px;
     background: #21262d;
   }
-
-  .nav-sub-item:hover {
-    background: #161b22;
-    color: #c9d1d9;
+  .nav-l2:hover { background: #1c2129; color: #f0f6fc; }
+  .nav-l2 .chevron {
+    font-size: 9px;
+    color: #484f58;
+    transition: transform 0.2s ease;
   }
+  .nav-l2.expanded .chevron { transform: rotate(90deg); }
 
-  .nav-sub-item.active {
+  .sub-l2 { display: none; }
+  .sub-l2.open { display: block; }
+
+  /* Level 3 - Projects (App Migration, ADA, Maintenance) */
+  .nav-l3 {
+    display: flex;
+    align-items: center;
+    padding: 6px 20px 6px 56px;
+    color: #8b949e;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+  }
+  .nav-l3::before {
+    content: '';
+    position: absolute;
+    left: 26px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #21262d;
+  }
+  .nav-l3::after {
+    content: '';
+    position: absolute;
+    left: 44px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #21262d;
+  }
+  .nav-l3:hover { background: #161b22; color: #c9d1d9; }
+  .nav-l3.active {
     background: #1c2129;
     color: #58a6ff;
   }
-
-  .nav-sub-item.active::before {
+  .nav-l3.active::after {
     background: #58a6ff;
     width: 2px;
   }
-
-  .nav-sub-item .dot {
-    width: 6px;
-    height: 6px;
+  .nav-l3 .dot {
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: #484f58;
-    margin-right: 10px;
+    margin-right: 8px;
     flex-shrink: 0;
   }
-
-  .nav-sub-item.active .dot {
-    background: #58a6ff;
-  }
+  .nav-l3.active .dot { background: #58a6ff; }
 
   /* Main Content */
   .main {
-    margin-left: 260px;
+    margin-left: 270px;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -179,10 +199,7 @@
     font-size: 13px;
     color: #8b949e;
   }
-
-  .header-breadcrumb span {
-    color: #58a6ff;
-  }
+  .header-breadcrumb span { color: #58a6ff; }
 
   .content {
     padding: 24px;
@@ -198,7 +215,6 @@
     height: 60vh;
     text-align: center;
   }
-
   .welcome-icon {
     width: 64px;
     height: 64px;
@@ -211,26 +227,11 @@
     font-size: 28px;
     margin-bottom: 16px;
   }
-
-  .welcome h2 {
-    font-size: 20px;
-    font-weight: 600;
-    color: #c9d1d9;
-    margin-bottom: 8px;
-  }
-
-  .welcome p {
-    font-size: 14px;
-    color: #8b949e;
-  }
+  .welcome h2 { font-size: 20px; font-weight: 600; color: #c9d1d9; margin-bottom: 8px; }
+  .welcome p { font-size: 14px; color: #8b949e; }
 
   /* Stats Cards */
-  .stats-row {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-
+  .stats-row { display: flex; gap: 16px; margin-bottom: 24px; }
   .stat-card {
     flex: 1;
     background: #161b22;
@@ -239,46 +240,17 @@
     padding: 16px 20px;
     text-align: center;
   }
-
-  .stat-card .value {
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 4px;
-  }
-
-  .stat-card .label {
-    font-size: 12px;
-    color: #8b949e;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
+  .stat-card .value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+  .stat-card .label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
   .stat-card.runs .value { color: #58a6ff; }
   .stat-card.passed .value { color: #3fb950; }
   .stat-card.failed .value { color: #f85149; }
   .stat-card.rate .value { color: #d29922; }
 
   /* Section Title */
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-  }
-
-  .section-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #f0f6fc;
-  }
-
-  .section-badge {
-    background: #21262d;
-    color: #8b949e;
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 12px;
-  }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-title { font-size: 18px; font-weight: 600; color: #f0f6fc; }
+  .section-badge { background: #21262d; color: #8b949e; font-size: 12px; padding: 4px 10px; border-radius: 12px; }
 
   /* Run Cards */
   .run-card {
@@ -291,176 +263,51 @@
     align-items: center;
     transition: all 0.15s ease;
   }
-
-  .run-card:hover {
-    border-color: #30363d;
-    background: #1c2129;
-  }
+  .run-card:hover { border-color: #30363d; background: #1c2129; }
 
   .run-status-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    margin-right: 16px;
-    flex-shrink: 0;
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; margin-right: 16px; flex-shrink: 0;
   }
+  .run-status-icon.passed { background: #3fb95015; color: #3fb950; border: 1px solid #3fb95030; }
+  .run-status-icon.failed { background: #f8514915; color: #f85149; border: 1px solid #f8514930; }
 
-  .run-status-icon.passed {
-    background: #3fb95015;
-    color: #3fb950;
-    border: 1px solid #3fb95030;
-  }
+  .run-info { flex: 1; min-width: 0; }
+  .run-date { font-size: 14px; font-weight: 500; color: #c9d1d9; }
+  .run-id { font-size: 12px; color: #484f58; margin-top: 2px; }
 
-  .run-status-icon.failed {
-    background: #f8514915;
-    color: #f85149;
-    border: 1px solid #f8514930;
-  }
+  .run-bar { width: 200px; height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; margin: 0 20px; flex-shrink: 0; }
+  .run-bar-inner { height: 100%; display: flex; }
+  .run-bar-passed { background: #3fb950; }
+  .run-bar-failed { background: #f85149; }
 
-  .run-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .run-date {
-    font-size: 14px;
-    font-weight: 500;
-    color: #c9d1d9;
-  }
-
-  .run-id {
-    font-size: 12px;
-    color: #484f58;
-    margin-top: 2px;
-  }
-
-  .run-bar {
-    width: 200px;
-    height: 6px;
-    background: #21262d;
-    border-radius: 3px;
-    overflow: hidden;
-    margin: 0 20px;
-    flex-shrink: 0;
-  }
-
-  .run-bar-inner {
-    height: 100%;
-    display: flex;
-  }
-
-  .run-bar-passed {
-    background: #3fb950;
-    transition: width 0.3s ease;
-  }
-
-  .run-bar-failed {
-    background: #f85149;
-    transition: width 0.3s ease;
-  }
-
-  .run-stats {
-    display: flex;
-    gap: 20px;
-    margin: 0 20px;
-    flex-shrink: 0;
-  }
-
-  .run-stat {
-    text-align: center;
-    min-width: 40px;
-  }
-
-  .run-stat .num {
-    font-size: 15px;
-    font-weight: 600;
-  }
-
-  .run-stat .lbl {
-    font-size: 10px;
-    color: #8b949e;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
+  .run-stats { display: flex; gap: 20px; margin: 0 20px; flex-shrink: 0; }
+  .run-stat { text-align: center; min-width: 40px; }
+  .run-stat .num { font-size: 15px; font-weight: 600; }
+  .run-stat .lbl { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
   .run-stat.p .num { color: #3fb950; }
   .run-stat.f .num { color: #f85149; }
   .run-stat.t .num { color: #c9d1d9; }
 
-  .run-duration {
-    font-size: 13px;
-    color: #8b949e;
-    margin: 0 16px;
-    min-width: 50px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-
-  .run-action {
-    flex-shrink: 0;
-  }
-
+  .run-duration { font-size: 13px; color: #8b949e; margin: 0 16px; min-width: 50px; text-align: center; flex-shrink: 0; }
+  .run-action { flex-shrink: 0; }
   .btn-open {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    background: transparent;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    color: #58a6ff;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.15s ease;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; background: transparent;
+    border: 1px solid #30363d; border-radius: 6px;
+    color: #58a6ff; font-size: 13px; font-weight: 500;
+    cursor: pointer; text-decoration: none; transition: all 0.15s ease;
   }
+  .btn-open:hover { background: #58a6ff15; border-color: #58a6ff40; }
 
-  .btn-open:hover {
-    background: #58a6ff15;
-    border-color: #58a6ff40;
-  }
+  .empty-state { text-align: center; padding: 40px; color: #8b949e; }
+  .empty-state .es-icon { font-size: 32px; margin-bottom: 12px; }
 
-  /* Empty State */
-  .empty-state {
-    text-align: center;
-    padding: 40px;
-    color: #8b949e;
-  }
+  .loading { display: flex; align-items: center; justify-content: center; padding: 60px; color: #8b949e; gap: 8px; }
+  .spinner { width: 18px; height: 18px; border: 2px solid #21262d; border-top-color: #58a6ff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  .empty-state .es-icon {
-    font-size: 32px;
-    margin-bottom: 12px;
-  }
-
-  /* Loading */
-  .loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 60px;
-    color: #8b949e;
-    gap: 8px;
-  }
-
-  .spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid #21262d;
-    border-top-color: #58a6ff;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* Scrollbar */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
@@ -474,33 +321,75 @@
     <h1><span class="icon">QA</span> Automation Reports</h1>
   </div>
 
-  <div class="sidebar-label">Projects</div>
+  <div class="sidebar-label">Systems</div>
 
-  <div class="nav-item" onclick="toggleNav(this, 'sub-appmigration')">
-    AppMigration <span class="chevron">&#9654;</span>
-  </div>
-  <div id="sub-appmigration" class="nav-sub">
-    <div class="nav-sub-item" onclick="loadRuns('AppMigration', 'ES', this)"><span class="dot"></span>ES</div>
-    <div class="nav-sub-item" onclick="loadRuns('AppMigration', 'CS', this)"><span class="dot"></span>CS</div>
-    <div class="nav-sub-item" onclick="loadRuns('AppMigration', 'SS', this)"><span class="dot"></span>SS</div>
+  <!-- ES -->
+  <div class="nav-l1" onclick="toggle(this,'sub-es')">ES <span class="chevron">&#9654;</span></div>
+  <div id="sub-es" class="sub-l1">
+    <div class="nav-l2" onclick="toggle(this,'sub-es-ess')">ESS <span class="chevron">&#9654;</span></div>
+    <div id="sub-es-ess" class="sub-l2">
+      <div class="nav-l3" onclick="loadRuns('ES','ESS','App_Migration',this)"><span class="dot"></span>App Migration</div>
+      <div class="nav-l3" onclick="loadRuns('ES','ESS','ADA',this)"><span class="dot"></span>ADA</div>
+      <div class="nav-l3" onclick="loadRuns('ES','ESS','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+    </div>
+    <div class="nav-l2" onclick="toggle(this,'sub-es-clarety')">Clarety <span class="chevron">&#9654;</span></div>
+    <div id="sub-es-clarety" class="sub-l2">
+      <div class="nav-l3" onclick="loadRuns('ES','Clarety','App_Migration',this)"><span class="dot"></span>App Migration</div>
+      <div class="nav-l3" onclick="loadRuns('ES','Clarety','ADA',this)"><span class="dot"></span>ADA</div>
+      <div class="nav-l3" onclick="loadRuns('ES','Clarety','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+    </div>
+    <div class="nav-l2" onclick="toggle(this,'sub-es-miaccount')">MiAccount <span class="chevron">&#9654;</span></div>
+    <div id="sub-es-miaccount" class="sub-l2">
+      <div class="nav-l3" onclick="loadRuns('ES','MiAccount','App_Migration',this)"><span class="dot"></span>App Migration</div>
+      <div class="nav-l3" onclick="loadRuns('ES','MiAccount','ADA',this)"><span class="dot"></span>ADA</div>
+      <div class="nav-l3" onclick="loadRuns('ES','MiAccount','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+    </div>
   </div>
 
-  <div class="nav-item" onclick="toggleNav(this, 'sub-ada')">
-    ADA <span class="chevron">&#9654;</span>
-  </div>
-  <div id="sub-ada" class="nav-sub">
-    <div class="nav-sub-item" onclick="loadRuns('ADA', 'ES', this)"><span class="dot"></span>ES</div>
-    <div class="nav-sub-item" onclick="loadRuns('ADA', 'CS', this)"><span class="dot"></span>CS</div>
-    <div class="nav-sub-item" onclick="loadRuns('ADA', 'SS', this)"><span class="dot"></span>SS</div>
+  <!-- CS -->
+  <div class="nav-l1" onclick="toggle(this,'sub-cs')">CS <span class="chevron">&#9654;</span></div>
+  <div id="sub-cs" class="sub-l1">
+    <div class="nav-l2" onclick="toggle(this,'sub-cs-ess')">ESS <span class="chevron">&#9654;</span></div>
+    <div id="sub-cs-ess" class="sub-l2">
+      <div class="nav-l3" onclick="loadRuns('CS','ESS','App_Migration',this)"><span class="dot"></span>App Migration</div>
+      <div class="nav-l3" onclick="loadRuns('CS','ESS','ADA',this)"><span class="dot"></span>ADA</div>
+      <div class="nav-l3" onclick="loadRuns('CS','ESS','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+    </div>
+    <div class="nav-l2" onclick="toggle(this,'sub-cs-clarety')">Clarety <span class="chevron">&#9654;</span></div>
+    <div id="sub-cs-clarety" class="sub-l2">
+      <div class="nav-l3" onclick="loadRuns('CS','Clarety','App_Migration',this)"><span class="dot"></span>App Migration</div>
+      <div class="nav-l3" onclick="loadRuns('CS','Clarety','ADA',this)"><span class="dot"></span>ADA</div>
+      <div class="nav-l3" onclick="loadRuns('CS','Clarety','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+    </div>
+    <div class="nav-l2" onclick="toggle(this,'sub-cs-miaccount')">MiAccount <span class="chevron">&#9654;</span></div>
+    <div id="sub-cs-miaccount" class="sub-l2">
+      <div class="nav-l3" onclick="loadRuns('CS','MiAccount','App_Migration',this)"><span class="dot"></span>App Migration</div>
+      <div class="nav-l3" onclick="loadRuns('CS','MiAccount','ADA',this)"><span class="dot"></span>ADA</div>
+      <div class="nav-l3" onclick="loadRuns('CS','MiAccount','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+    </div>
   </div>
 
-  <div class="nav-item" onclick="toggleNav(this, 'sub-maintenance')">
-    Maintenance <span class="chevron">&#9654;</span>
-  </div>
-  <div id="sub-maintenance" class="nav-sub">
-    <div class="nav-sub-item" onclick="loadRuns('Maintenance', 'ES', this)"><span class="dot"></span>ES</div>
-    <div class="nav-sub-item" onclick="loadRuns('Maintenance', 'CS', this)"><span class="dot"></span>CS</div>
-    <div class="nav-sub-item" onclick="loadRuns('Maintenance', 'SS', this)"><span class="dot"></span>SS</div>
+  <!-- SS -->
+  <div class="nav-l1" onclick="toggle(this,'sub-ss')">SS <span class="chevron">&#9654;</span></div>
+  <div id="sub-ss" class="sub-l1">
+    <div class="nav-l2" onclick="toggle(this,'sub-ss-ess')">ESS <span class="chevron">&#9654;</span></div>
+    <div id="sub-ss-ess" class="sub-l2">
+      <div class="nav-l3" onclick="loadRuns('SS','ESS','App_Migration',this)"><span class="dot"></span>App Migration</div>
+      <div class="nav-l3" onclick="loadRuns('SS','ESS','ADA',this)"><span class="dot"></span>ADA</div>
+      <div class="nav-l3" onclick="loadRuns('SS','ESS','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+    </div>
+    <div class="nav-l2" onclick="toggle(this,'sub-ss-clarety')">Clarety <span class="chevron">&#9654;</span></div>
+    <div id="sub-ss-clarety" class="sub-l2">
+      <div class="nav-l3" onclick="loadRuns('SS','Clarety','App_Migration',this)"><span class="dot"></span>App Migration</div>
+      <div class="nav-l3" onclick="loadRuns('SS','Clarety','ADA',this)"><span class="dot"></span>ADA</div>
+      <div class="nav-l3" onclick="loadRuns('SS','Clarety','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+    </div>
+    <div class="nav-l2" onclick="toggle(this,'sub-ss-miaccount')">MiAccount <span class="chevron">&#9654;</span></div>
+    <div id="sub-ss-miaccount" class="sub-l2">
+      <div class="nav-l3" onclick="loadRuns('SS','MiAccount','App_Migration',this)"><span class="dot"></span>App Migration</div>
+      <div class="nav-l3" onclick="loadRuns('SS','MiAccount','ADA',this)"><span class="dot"></span>ADA</div>
+      <div class="nav-l3" onclick="loadRuns('SS','MiAccount','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+    </div>
   </div>
 </nav>
 
@@ -514,42 +403,42 @@
     <div class="welcome">
       <div class="welcome-icon">&#128202;</div>
       <h2>Welcome to QA Reports</h2>
-      <p>Select a project and system from the sidebar to view test runs</p>
+      <p>Select a system, application, and project from the sidebar to view test runs</p>
     </div>
   </div>
 </div>
 
 <script>
-function toggleNav(item, subId) {
+function toggle(item, subId) {
   var sub = document.getElementById(subId);
   sub.classList.toggle('open');
   item.classList.toggle('expanded');
 }
 
 function setActive(el) {
-  document.querySelectorAll('.nav-sub-item').forEach(function(item) {
+  document.querySelectorAll('.nav-l3').forEach(function(item) {
     item.classList.remove('active');
   });
   if (el) el.classList.add('active');
 }
 
-async function loadRuns(category, system, el) {
+async function loadRuns(system, app, project, el) {
   setActive(el);
 
   var breadcrumb = document.getElementById('breadcrumb');
-  breadcrumb.innerHTML = '<span>' + category + '</span> / <span>' + system + '</span>';
+  breadcrumb.innerHTML = '<span>' + system + '</span> / <span>' + app + '</span> / <span>' + project.replace('_',' ') + '</span>';
 
   var content = document.getElementById('content');
   content.innerHTML = '<div class="loading"><div class="spinner"></div> Loading runs...</div>';
 
   try {
-    var res = await fetch('/api/' + category + '/' + system + '/runs');
+    var res = await fetch('/api/' + system + '/' + app + '/' + project + '/runs');
     var runs = await res.json();
 
     if (runs.length === 0) {
       content.innerHTML =
-        '<div class="section-header"><div class="section-title">' + category + ' &rsaquo; ' + system + '</div></div>' +
-        '<div class="empty-state"><div class="es-icon">&#128193;</div><p>No runs found yet.<br>Run tests with --project=' + category + '/' + system + ' to see results here.</p></div>';
+        '<div class="section-header"><div class="section-title">' + system + ' &rsaquo; ' + app + ' &rsaquo; ' + project.replace('_',' ') + '</div></div>' +
+        '<div class="empty-state"><div class="es-icon">&#128193;</div><p>No runs found yet.<br>Run tests with --project=' + system + '/' + app + '/' + project + ' to see results here.</p></div>';
       return;
     }
 
@@ -569,7 +458,7 @@ async function loadRuns(category, system, el) {
     html += '<div class="stat-card rate"><div class="value">' + passRate + '%</div><div class="label">Pass Rate</div></div>';
     html += '</div>';
 
-    html += '<div class="section-header"><div class="section-title">' + category + ' &rsaquo; ' + system + '</div><div class="section-badge">' + runs.length + ' run' + (runs.length !== 1 ? 's' : '') + '</div></div>';
+    html += '<div class="section-header"><div class="section-title">' + system + ' &rsaquo; ' + app + ' &rsaquo; ' + project.replace('_',' ') + '</div><div class="section-badge">' + runs.length + ' run' + (runs.length !== 1 ? 's' : '') + '</div></div>';
 
     runs.forEach(function(run) {
       var date = new Date(run.date).toLocaleString();
