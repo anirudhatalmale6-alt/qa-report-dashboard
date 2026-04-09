@@ -12,7 +12,7 @@ app.use("/dashboard", express.static(path.join(__dirname, "public")));
 // Serve report files (each report is in its own subfolder)
 app.use("/reports", express.static(REPORTS_DIR));
 
-// API: list all projects
+// API: list all projects with their systems
 app.get("/api/projects", (req, res) => {
   if (!fs.existsSync(REPORTS_DIR)) {
     return res.json([]);
@@ -22,10 +22,60 @@ app.get("/api/projects", (req, res) => {
     .filter((d) => d.isDirectory())
     .map((d) => {
       const projectPath = path.join(REPORTS_DIR, d.name);
-      const runs = getProjectRuns(projectPath);
-      const latestRun = runs.length > 0 ? runs[0] : null;
+      const systems = getProjectSystems(projectPath, d.name);
+      const totalRuns = systems.reduce((sum, s) => sum + s.totalRuns, 0);
       return {
         name: d.name,
+        systems: systems,
+        totalRuns: totalRuns,
+      };
+    });
+  res.json(projects);
+});
+
+// API: list runs for a project/system (supports both 1-level and 2-level)
+app.get("/api/projects/:project/runs", (req, res) => {
+  const projectPath = path.join(REPORTS_DIR, req.params.project);
+  if (!fs.existsSync(projectPath)) {
+    return res.status(404).json({ error: "Project not found" });
+  }
+  const runs = getRuns(projectPath, req.params.project);
+  res.json(runs);
+});
+
+app.get("/api/projects/:project/:system/runs", (req, res) => {
+  const systemPath = path.join(
+    REPORTS_DIR,
+    req.params.project,
+    req.params.system
+  );
+  if (!fs.existsSync(systemPath)) {
+    return res.status(404).json({ error: "System not found" });
+  }
+  const reportBase = `${req.params.project}/${req.params.system}`;
+  const runs = getRuns(systemPath, reportBase);
+  res.json(runs);
+});
+
+function getProjectSystems(projectPath, projectName) {
+  const systems = [];
+  const entries = fs
+    .readdirSync(projectPath, { withFileTypes: true })
+    .filter((d) => d.isDirectory());
+
+  for (const entry of entries) {
+    const entryPath = path.join(projectPath, entry.name);
+    // Check if this is a system folder (contains timestamp folders)
+    // or a direct run folder (is itself a timestamp folder)
+    const isTimestamp = /^\d{8}/.test(entry.name);
+
+    if (!isTimestamp) {
+      // This is a system subfolder
+      const reportBase = `${projectName}/${entry.name}`;
+      const runs = getRuns(entryPath, reportBase);
+      const latestRun = runs.length > 0 ? runs[0] : null;
+      systems.push({
+        name: entry.name,
         totalRuns: runs.length,
         latestRun: latestRun
           ? {
@@ -36,31 +86,42 @@ app.get("/api/projects", (req, res) => {
               status: latestRun.failed > 0 ? "failed" : "passed",
             }
           : null,
-      };
-    });
-  res.json(projects);
-});
-
-// API: list runs for a project
-app.get("/api/projects/:project/runs", (req, res) => {
-  const projectPath = path.join(REPORTS_DIR, req.params.project);
-  if (!fs.existsSync(projectPath)) {
-    return res.status(404).json({ error: "Project not found" });
+      });
+    }
   }
-  const runs = getProjectRuns(projectPath);
-  res.json(runs);
-});
 
-function getProjectRuns(projectPath) {
+  // If no system subfolders found, treat the project itself as having direct runs
+  if (systems.length === 0) {
+    const runs = getRuns(projectPath, projectName);
+    if (runs.length > 0) {
+      const latestRun = runs[0];
+      systems.push({
+        name: "_default",
+        totalRuns: runs.length,
+        latestRun: {
+          date: latestRun.date,
+          passed: latestRun.passed,
+          failed: latestRun.failed,
+          total: latestRun.total,
+          status: latestRun.failed > 0 ? "failed" : "passed",
+        },
+      });
+    }
+  }
+
+  return systems;
+}
+
+function getRuns(dirPath, reportBase) {
   const runs = [];
-  if (!fs.existsSync(projectPath)) return runs;
+  if (!fs.existsSync(dirPath)) return runs;
 
   const entries = fs
-    .readdirSync(projectPath, { withFileTypes: true })
-    .filter((d) => d.isDirectory());
+    .readdirSync(dirPath, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && /^\d{8}/.test(d.name));
 
   for (const entry of entries) {
-    const runPath = path.join(projectPath, entry.name);
+    const runPath = path.join(dirPath, entry.name);
     const summaryPath = path.join(runPath, "summary.json");
 
     let summary = null;
@@ -81,7 +142,6 @@ function getProjectRuns(projectPath) {
     const total = stats.total || 0;
     const duration = summary?.duration || 0;
 
-    // Parse date from folder name (format: YYYYMMDD_HHmmss or similar)
     let date = parseRunDate(entry.name);
 
     runs.push({
@@ -96,17 +156,15 @@ function getProjectRuns(projectPath) {
       total,
       duration,
       status: failed > 0 || broken > 0 ? "failed" : "passed",
-      reportUrl: `/reports/${path.basename(projectPath)}/${entry.name}/index.html`,
+      reportUrl: `/reports/${reportBase}/${entry.name}/index.html`,
     });
   }
 
-  // Sort by date descending (newest first)
   runs.sort((a, b) => new Date(b.date) - new Date(a.date));
   return runs;
 }
 
 function parseRunDate(folderName) {
-  // Try parsing YYYYMMDD_HHmmss format
   const match = folderName.match(
     /(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/
   );
@@ -114,7 +172,6 @@ function parseRunDate(folderName) {
     const [, y, m, d, h, min, s] = match;
     return new Date(y, m - 1, d, h, min, s).toISOString();
   }
-  // Try parsing ISO-like format
   const isoMatch = folderName.match(
     /(\d{4})-(\d{2})-(\d{2})[T_](\d{2})-(\d{2})-(\d{2})/
   );
@@ -122,7 +179,6 @@ function parseRunDate(folderName) {
     const [, y, m, d, h, min, s] = isoMatch;
     return new Date(y, m - 1, d, h, min, s).toISOString();
   }
-  // Fallback: use folder modification time
   return new Date().toISOString();
 }
 
