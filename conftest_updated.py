@@ -222,7 +222,18 @@ def prod_browser(request, playwright_instance, env_config):
         yield None
         return
 
+    # Read browser from --browser flag, or from first TestPlan row's Browser column
     browser_name = request.config.getoption("--browser").lower()
+    if browser_name == "msedge":
+        # Check if TestPlan has a different browser specified
+        try:
+            df = pd.read_excel(TEST_PLAN_PATH, sheet_name='TestPlan')
+            excel_browser = str(df['Browser'].dropna().iloc[0]).strip().lower()
+            if excel_browser:
+                browser_name = excel_browser
+                logger.info(f"Production mode: Browser from Excel TestPlan -> '{browser_name}'")
+        except Exception:
+            pass
     logger.info(f"Production mode: Launching browser '{browser_name}'")
 
     if browser_name == "msedge":
