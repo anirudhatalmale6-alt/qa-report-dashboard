@@ -2,13 +2,20 @@
 # Called from conftest.py after test execution
 # Generates Allure report AND publishes to QA Dashboard
 
-# Navigate to project root (where conftest.py is)
+# Stay in the current working directory (where pytest runs from)
+# Do NOT change to $scriptDir - allure-results is in the CWD, not the script folder
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location $scriptDir
+$cwd = Get-Location
+Write-Host "Working directory: $cwd"
+Write-Host "Script directory: $scriptDir"
 
-# Read project name from allure-project.txt (written by conftest.py)
+# Read project name from allure-project.txt (written by conftest.py in CWD)
 $ProjectName = "default"
-$projectFile = Join-Path $scriptDir "allure-project.txt"
+$projectFile = Join-Path $cwd "allure-project.txt"
+if (!(Test-Path $projectFile)) {
+    # Fallback: check script directory
+    $projectFile = Join-Path $scriptDir "allure-project.txt"
+}
 if (Test-Path $projectFile) {
     $ProjectName = (Get-Content $projectFile -Raw).Trim()
     Write-Host "Project name: $ProjectName"
@@ -17,7 +24,7 @@ if (Test-Path $projectFile) {
 # ================================
 #   ENSURE HISTORY DIRECTORY EXISTS
 # ================================
-$historyDir = Join-Path $scriptDir "allure-history"
+$historyDir = Join-Path $cwd "allure-history"
 if (!(Test-Path $historyDir)) {
     New-Item -ItemType Directory -Path $historyDir -Force | Out-Null
     Write-Host "Created allure-history directory"
@@ -54,8 +61,8 @@ if (Test-Path $DashboardPath) {
 
     if (Test-Path $publishScript) {
         Write-Host "Publishing to QA Dashboard..."
-        $reportPath = Join-Path $scriptDir "allure-report"
-        $resultsPath = Join-Path $scriptDir "test-results"
+        $reportPath = Join-Path $cwd "allure-report"
+        $resultsPath = Join-Path $cwd "test-results"
 
         & $publishScript -ProjectName $ProjectName -DashboardPath $DashboardPath -ReportPath $reportPath -ResultsPath $resultsPath
 
