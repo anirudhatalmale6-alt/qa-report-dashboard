@@ -52,7 +52,6 @@ def pytest_addoption(parser):
     parser.addoption("--all", action="store_true", help="Run all tests, ignoring Execute flag")
     parser.addoption("--project", default="default", help="Project name for dashboard")
     parser.addoption("--mode", default="uat", help="Run mode: 'prod' for production (single browser, manual login) or 'uat' for UAT (parallel, auto login)")
-    parser.addoption("--browser", default="msedge", help="Browser for prod mode: 'msedge', 'chromium', 'firefox', 'webkit'")
 
 #######################
 # Environment Config
@@ -222,19 +221,16 @@ def prod_browser(request, playwright_instance, env_config):
         yield None
         return
 
-    # Read browser from --browser flag, or from first TestPlan row's Browser column
-    browser_name = request.config.getoption("--browser").lower()
-    if browser_name == "msedge":
-        # Check if TestPlan has a different browser specified
-        try:
-            df = pd.read_excel(TEST_PLAN_PATH, sheet_name='TestPlan')
-            excel_browser = str(df['Browser'].dropna().iloc[0]).strip().lower()
-            if excel_browser:
-                browser_name = excel_browser
-                logger.info(f"Production mode: Browser from Excel TestPlan -> '{browser_name}'")
-        except Exception:
-            pass
-    logger.info(f"Production mode: Launching browser '{browser_name}'")
+    # Read browser from TestPlan Excel Browser column (first row)
+    browser_name = "msedge"  # default
+    try:
+        df = pd.read_excel(TEST_PLAN_PATH, sheet_name='TestPlan')
+        excel_browser = str(df['Browser'].dropna().iloc[0]).strip().lower()
+        if excel_browser:
+            browser_name = excel_browser
+    except Exception:
+        pass
+    logger.info(f"Production mode: Browser from Excel -> '{browser_name}'")
 
     if browser_name == "msedge":
         browser = playwright_instance.chromium.launch(
