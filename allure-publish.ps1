@@ -29,7 +29,8 @@ if (!(Test-Path $ReportPath)) {
 
 # Generate timestamp folder name
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$destDir = Join-Path $DashboardPath "reports" $ProjectName $timestamp
+# PowerShell 5.1: Join-Path only takes 2 args, chain with -ChildPath
+$destDir = Join-Path -Path (Join-Path -Path (Join-Path -Path $DashboardPath -ChildPath "reports") -ChildPath $ProjectName) -ChildPath $timestamp
 
 Write-Host "Publishing report to: $destDir"
 
@@ -38,7 +39,7 @@ New-Item -ItemType Directory -Path $destDir -Force | Out-Null
 Copy-Item -Path "$ReportPath\*" -Destination $destDir -Recurse -Force
 
 # Extract summary from the Allure report's widgets/summary.json
-$widgetSummary = Join-Path $ReportPath "widgets" "summary.json"
+$widgetSummary = Join-Path -Path (Join-Path -Path $ReportPath -ChildPath "widgets") -ChildPath "summary.json"
 if (Test-Path $widgetSummary) {
     $data = Get-Content $widgetSummary -Raw | ConvertFrom-Json
     $stats = $data.statistic
