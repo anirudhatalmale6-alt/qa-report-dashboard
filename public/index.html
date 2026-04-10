@@ -771,7 +771,15 @@ async function loadLocustRuns(scriptName, el) {
     }
 
     var totalReqs = 0, totalFails = 0, totalRuns = runs.length;
-    runs.forEach(function(r) { totalReqs += r.totalRequests; totalFails += r.totalFailures; });
+    runs.forEach(function(r) {
+      r.totalRequests = Number(r.totalRequests) || 0;
+      r.totalFailures = Number(r.totalFailures) || 0;
+      r.avgResponseTime = Number(r.avgResponseTime) || 0;
+      r.passRate = Number(r.passRate) || 0;
+      r.envName = r.envName || 'N/A';
+      totalReqs += r.totalRequests;
+      totalFails += r.totalFailures;
+    });
     var overallPassRate = totalReqs > 0 ? (((totalReqs - totalFails) / totalReqs) * 100).toFixed(1) : '0.0';
 
     var html = '';
