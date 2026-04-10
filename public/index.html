@@ -404,6 +404,10 @@
   .status-failed { color: #f85149; font-weight: 600; }
   .status-empty { color: #484f58; }
 
+  /* Locust status colors */
+  .status-ok { color: #3fb950; font-weight: 600; }
+  .status-error { color: #f85149; font-weight: 600; }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
@@ -441,6 +445,14 @@
     <div class="nav-l2" onclick="loadRuns('MiAccount','App_Migration',this)"><span class="dot"></span>App Migration</div>
     <div class="nav-l2" onclick="loadRuns('MiAccount','ADA',this)"><span class="dot"></span>ADA</div>
     <div class="nav-l2" onclick="loadRuns('MiAccount','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+  </div>
+
+  <div class="sidebar-label">Load Testing</div>
+
+  <!-- Locust -->
+  <div class="nav-l1" onclick="toggle(this,'sub-locust');loadLocustScripts()">Locust <span class="chevron">&#9654;</span></div>
+  <div id="sub-locust" class="sub-l1">
+    <div id="locust-scripts-list" style="padding:8px 20px 8px 36px;color:#484f58;font-size:12px;">Loading scripts...</div>
   </div>
 </nav>
 
@@ -706,6 +718,144 @@ function sortResults(col) {
 
 function closeResults() {
   document.getElementById('resultsOverlay').classList.remove('active');
+}
+
+// ===========================
+// LOCUST DASHBOARD FUNCTIONS
+// ===========================
+
+var locustScriptsLoaded = false;
+
+async function loadLocustScripts() {
+  if (locustScriptsLoaded) return;
+  locustScriptsLoaded = true;
+
+  try {
+    var res = await fetch('/api/locust/scripts');
+    var scripts = await res.json();
+    var container = document.getElementById('locust-scripts-list');
+
+    if (scripts.length === 0) {
+      container.innerHTML = '<div style="color:#484f58;font-size:12px;padding:4px 0;">No runs yet. Use locust-publish.ps1 to publish.</div>';
+      return;
+    }
+
+    var html = '';
+    scripts.forEach(function(name) {
+      html += '<div class="nav-l2" onclick="loadLocustRuns(\'' + name + '\',this)"><span class="dot"></span>' + name.replace(/_/g, ' ') + '</div>';
+    });
+    container.innerHTML = html;
+  } catch(err) {
+    document.getElementById('locust-scripts-list').innerHTML = '<div style="color:#f85149;font-size:12px;">Error loading scripts</div>';
+  }
+}
+
+async function loadLocustRuns(scriptName, el) {
+  setActive(el);
+
+  var breadcrumb = document.getElementById('breadcrumb');
+  breadcrumb.innerHTML = '<span>Locust</span> / <span>' + scriptName.replace(/_/g, ' ') + '</span>';
+
+  var content = document.getElementById('content');
+  content.innerHTML = '<div class="loading"><div class="spinner"></div> Loading Locust runs...</div>';
+
+  try {
+    var res = await fetch('/api/locust/' + scriptName + '/runs');
+    var runs = await res.json();
+
+    if (runs.length === 0) {
+      content.innerHTML =
+        '<div class="section-header"><div class="section-title">Locust &rsaquo; ' + scriptName.replace(/_/g, ' ') + '</div></div>' +
+        '<div class="empty-state"><div class="es-icon">&#9889;</div><p>No Locust runs found yet.<br>Run Locust with --csv flag, then use locust-publish.ps1 to publish results.</p></div>';
+      return;
+    }
+
+    var totalReqs = 0, totalFails = 0, totalRuns = runs.length;
+    runs.forEach(function(r) { totalReqs += r.totalRequests; totalFails += r.totalFailures; });
+    var overallPassRate = totalReqs > 0 ? (((totalReqs - totalFails) / totalReqs) * 100).toFixed(1) : '0.0';
+
+    var html = '';
+    html += '<div class="stats-row">';
+    html += '<div class="stat-card runs"><div class="value">' + totalRuns + '</div><div class="label">Total Runs</div></div>';
+    html += '<div class="stat-card passed"><div class="value">' + totalReqs + '</div><div class="label">Total Requests</div></div>';
+    html += '<div class="stat-card failed"><div class="value">' + totalFails + '</div><div class="label">Failures</div></div>';
+    html += '<div class="stat-card rate"><div class="value">' + overallPassRate + '%</div><div class="label">Pass Rate</div></div>';
+    html += '</div>';
+
+    html += '<div class="section-header"><div class="section-title">Locust &rsaquo; ' + scriptName.replace(/_/g, ' ') + '</div><div class="section-badge">' + totalRuns + ' run' + (totalRuns !== 1 ? 's' : '') + '</div></div>';
+
+    runs.forEach(function(run) {
+      var date = new Date(run.date).toLocaleString();
+      var statusClass = run.status === 'passed' ? 'passed' : 'failed';
+      var statusIcon = run.status === 'passed' ? '&#10003;' : '&#10007;';
+      var pct = run.totalRequests > 0 ? (((run.totalRequests - run.totalFailures) / run.totalRequests) * 100) : 0;
+      var fPct = 100 - pct;
+
+      html += '<div class="run-card">';
+      html += '<div class="run-status-icon ' + statusClass + '">' + statusIcon + '</div>';
+      html += '<div class="run-info"><div class="run-date">' + date + '</div><div class="run-id">' + run.id + ' &middot; ' + run.envName + '</div></div>';
+      html += '<div class="run-bar"><div class="run-bar-inner"><div class="run-bar-passed" style="width:' + pct + '%"></div><div class="run-bar-failed" style="width:' + fPct + '%"></div></div></div>';
+      html += '<div class="run-stats">';
+      html += '<div class="run-stat p"><div class="num">' + run.totalRequests + '</div><div class="lbl">Reqs</div></div>';
+      html += '<div class="run-stat f"><div class="num">' + run.totalFailures + '</div><div class="lbl">Fail</div></div>';
+      html += '<div class="run-stat t"><div class="num">' + run.avgResponseTime + 'ms</div><div class="lbl">Avg RT</div></div>';
+      html += '</div>';
+      html += '<div class="run-duration">' + run.passRate + '%</div>';
+      html += '<div class="run-action"><button class="btn-results" onclick="openLocustStats(\'' + scriptName + '\',\'' + run.id + '\')">&#9776; Stats</button></div>';
+      html += '</div>';
+    });
+
+    content.innerHTML = html;
+  } catch(err) {
+    content.innerHTML = '<div class="empty-state"><div class="es-icon">&#9888;</div><p style="color:#f85149;">Error loading runs: ' + err.message + '</p></div>';
+  }
+}
+
+async function openLocustStats(scriptName, runId) {
+  var overlay = document.getElementById('resultsOverlay');
+  overlay.classList.add('active');
+  document.getElementById('resultsTitle').textContent = 'Locust / ' + scriptName.replace(/_/g, ' ') + ' - ' + runId;
+  document.getElementById('resultsHead').innerHTML = '';
+  document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#8b949e;text-align:center;">Loading stats...</td></tr>';
+  document.getElementById('resultsTabs').innerHTML = '';
+  document.getElementById('resultsCount').textContent = '';
+  document.getElementById('resultsSearch').value = '';
+  document.getElementById('statusFilter').value = '';
+
+  try {
+    var res = await fetch('/api/locust/' + scriptName + '/' + runId + '/stats');
+    var data = await res.json();
+
+    // Convert Locust data to same format as Allure results for reuse
+    var sheets = [];
+    data.files.forEach(function(f) {
+      sheets.push({ name: f.type.charAt(0).toUpperCase() + f.type.slice(1) + ' (' + f.name + ')', headers: f.headers, rows: f.rows });
+    });
+
+    if (data.log) {
+      // Add log as a pseudo-sheet
+      sheets.push({ name: 'Log', headers: ['Log Output'], rows: data.log.split('\n').slice(-200).map(function(line) { return { 'Log Output': line }; }) });
+    }
+
+    if (sheets.length === 0) {
+      document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#8b949e;text-align:center;">No stats data found for this run.</td></tr>';
+      return;
+    }
+
+    currentResultsData = { sheets: sheets };
+    currentSheetIndex = 0;
+
+    var tabsHtml = '';
+    sheets.forEach(function(sheet, i) {
+      var cls = i === 0 ? ' active' : '';
+      tabsHtml += '<div class="results-tab' + cls + '" onclick="switchSheet(' + i + ',this)">' + sheet.name + '</div>';
+    });
+    document.getElementById('resultsTabs').innerHTML = tabsHtml;
+
+    renderSheet(0);
+  } catch(err) {
+    document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#f85149;text-align:center;">Error: ' + err.message + '</td></tr>';
+  }
 }
 </script>
 
