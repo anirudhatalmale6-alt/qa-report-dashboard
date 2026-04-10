@@ -114,19 +114,31 @@ if ($Background) {
     Write-Host "Stop it:       Stop-Job -Name 'Locust_$scriptName'"
     Write-Host ""
 
+    # Capture current directory and script root before entering job (jobs don't inherit these)
+    $workingDir = (Get-Location).Path
+    $scriptRoot = $PSScriptRoot
+
     $jobScript = {
-        param($ScriptFile, $Users, $SpawnRate, $RunTime, $EnvName, $csvPrefix, $logFile, $ExtraArgs, $DashboardPath, $scriptName, $timestamp)
+        param($ScriptFile, $Users, $SpawnRate, $RunTime, $EnvName, $csvPrefix, $logFile, $ExtraArgs, $DashboardPath, $scriptName, $timestamp, $workingDir, $scriptRoot)
+
+        # Set working directory (background jobs default to user home)
+        Set-Location $workingDir
+        New-Item -ItemType Directory -Path "locust-results" -Force | Out-Null
+        New-Item -ItemType Directory -Path "logs" -Force | Out-Null
 
         $startTime = Get-Date
+        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Working directory: $workingDir"
         Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Starting Locust: $ScriptFile"
         Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Command: locust -f $ScriptFile -u $Users -r $SpawnRate --headless -t $RunTime --env-name $EnvName --csv $csvPrefix $ExtraArgs"
 
         # Run Locust
+        $errLog = Join-Path -Path "logs" -ChildPath "${scriptName}_${timestamp}_err.log"
         $process = Start-Process -FilePath "locust" `
             -ArgumentList "-f `"$ScriptFile`" -u $Users -r $SpawnRate --headless -t $RunTime --env-name $EnvName --csv `"$csvPrefix`" $ExtraArgs" `
+            -WorkingDirectory $workingDir `
             -NoNewWindow -Wait -PassThru `
             -RedirectStandardOutput $logFile `
-            -RedirectStandardError (Join-Path -Path "logs" -ChildPath "${scriptName}_${timestamp}_err.log")
+            -RedirectStandardError $errLog
 
         $endTime = Get-Date
         $duration = $endTime - $startTime
@@ -134,8 +146,14 @@ if ($Background) {
         Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Locust finished. Exit code: $($process.ExitCode)"
         Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Duration: $($duration.ToString('hh\:mm\:ss'))"
 
+        # Check if error log has content
+        if ((Test-Path $errLog) -and (Get-Item $errLog).Length -gt 0) {
+            Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Stderr output:"
+            Get-Content $errLog | ForEach-Object { Write-Output "  $_" }
+        }
+
         # Publish to dashboard
-        $publishScript = Join-Path -Path $PSScriptRoot -ChildPath "locust-publish.ps1"
+        $publishScript = Join-Path -Path $scriptRoot -ChildPath "locust-publish.ps1"
         if (Test-Path $publishScript) {
             Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Publishing to dashboard..."
             & $publishScript -ScriptName $scriptName -CsvPrefix $csvPrefix -DashboardPath $DashboardPath -EnvName $EnvName
@@ -155,7 +173,7 @@ if ($Background) {
     }
 
     Start-Job -Name "Locust_$scriptName" -ScriptBlock $jobScript `
-        -ArgumentList $ScriptFile, $Users, $SpawnRate, $RunTime, $EnvName, $csvPrefix, $logFile, $ExtraArgs, $DashboardPath, $scriptName, $timestamp
+        -ArgumentList $ScriptFile, $Users, $SpawnRate, $RunTime, $EnvName, $csvPrefix, $logFile, $ExtraArgs, $DashboardPath, $scriptName, $timestamp, $workingDir, $scriptRoot
 
     return
 }
