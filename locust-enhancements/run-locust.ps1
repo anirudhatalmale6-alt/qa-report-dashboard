@@ -179,7 +179,21 @@ Write-Host ""
 Write-Host "Running: $locustCmd"
 Write-Host ""
 
-Invoke-Expression "$locustCmd 2>&1 | Tee-Object -FilePath `"$logFile`""
+# Use & operator with argument list for reliable execution
+$locustArgs = @(
+    "-f", $ScriptFile,
+    "-u", $Users,
+    "-r", $SpawnRate,
+    "--headless",
+    "-t", $RunTime,
+    "--env-name", $EnvName,
+    "--csv", $csvPrefix
+)
+if ($ExtraArgs) {
+    $locustArgs += $ExtraArgs.Split(" ")
+}
+
+& locust @locustArgs 2>&1 | Tee-Object -FilePath $logFile
 
 $endTime = Get-Date
 $duration = $endTime - $startTime
