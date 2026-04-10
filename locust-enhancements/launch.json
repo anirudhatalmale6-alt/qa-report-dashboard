@@ -1,0 +1,109 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Locust: WSS RetiredMem (UAT75)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "locust",
+            "args": [
+                "-f", "wss/WSS_Retiredmem.py",
+                "--headless",
+                "--users", "1",
+                "--spawn-rate", "1",
+                "--run-time", "60s",
+                "--only-summary",
+                "--env-name", "UAT75"
+            ],
+            "cwd": "${workspaceFolder}/locust",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Locust: WSS RetiredMem AddDep (UAT41)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "locust",
+            "args": [
+                "-f", "wss/WSS_RetiredMem_AddDependent.py",
+                "--headless",
+                "--users", "1",
+                "--spawn-rate", "1",
+                "--run-time", "120s",
+                "--only-summary",
+                "--env-name", "UAT41"
+            ],
+            "cwd": "${workspaceFolder}/locust",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Locust: ESS (UAT75)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "locust",
+            "args": [
+                "-f", "ess/ess_test.py",
+                "--headless",
+                "--users", "1",
+                "--spawn-rate", "1",
+                "--run-time", "60s",
+                "--only-summary",
+                "--env-name", "UAT75"
+            ],
+            "cwd": "${workspaceFolder}/locust",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Locust: CLT (UAT75)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "locust",
+            "args": [
+                "-f", "clt/clt_test.py",
+                "--headless",
+                "--users", "1",
+                "--spawn-rate", "1",
+                "--run-time", "60s",
+                "--only-summary",
+                "--env-name", "UAT75"
+            ],
+            "cwd": "${workspaceFolder}/locust",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Locust: Web UI Mode",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "locust",
+            "args": [
+                "-f", "${file}",
+                "--env-name", "UAT75"
+            ],
+            "cwd": "${workspaceFolder}/locust",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Locust: CSV Stats Export",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "locust",
+            "args": [
+                "-f", "${file}",
+                "--headless",
+                "--users", "1",
+                "--spawn-rate", "1",
+                "--run-time", "120s",
+                "--only-summary",
+                "--env-name", "UAT75",
+                "--csv", "locust-results/${fileBasenameNoExtension}"
+            ],
+            "cwd": "${workspaceFolder}/locust",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
+}
