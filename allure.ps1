@@ -26,8 +26,14 @@ if (!(Test-Path $historyDir)) {
 # ================================
 #   GENERATE ALLURE REPORT
 # ================================
+# Remove old report before generating (Allure 3 has no --clean flag)
+if (Test-Path "allure-report") {
+    Remove-Item -Recurse -Force "allure-report"
+    Write-Host "Cleaned old allure-report"
+}
+
 Write-Host "Generating Allure report..."
-allure generate allure-results --clean -o allure-report
+allure generate allure-results -o allure-report
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Allure report generation failed"
