@@ -111,6 +111,20 @@ app.get("/api/:app/:project/:runId/results", (req, res) => {
   res.json({ sheets });
 });
 
+// API: list CSV files for download
+app.get("/api/:app/:project/:runId/csv-files", (req, res) => {
+  const { app: appName, project, runId } = req.params;
+  const csvDir = path.join(REPORTS_DIR, appName, project, runId, "csv-results");
+  if (!fs.existsSync(csvDir)) {
+    return res.json([]);
+  }
+  const files = fs.readdirSync(csvDir).filter(f => f.endsWith(".csv"));
+  res.json(files.map(f => ({
+    name: f,
+    url: "/reports/" + appName + "/" + project + "/" + runId + "/csv-results/" + f
+  })));
+});
+
 // ===========================
 // LOCUST API ENDPOINTS
 // ===========================

@@ -572,7 +572,7 @@ async function loadRuns(app, project, el) {
       html += '<div class="run-stat t"><div class="num">' + run.total + '</div><div class="lbl">Total</div></div>';
       html += '</div>';
       html += '<div class="run-duration">' + duration + '</div>';
-      html += '<div class="run-action"><button class="btn-results" onclick="openResults(\'' + app + '\',\'' + project + '\',\'' + run.id + '\')">&#9776; Results</button><a class="btn-open" href="' + run.reportUrl + '" target="_blank">&#8599; Open</a></div>';
+      html += '<div class="run-action"><button class="btn-results" onclick="openResults(\'' + app + '\',\'' + project + '\',\'' + run.id + '\')">&#9776; Results</button><button class="btn-results" onclick="downloadCSV(\'' + app + '\',\'' + project + '\',\'' + run.id + '\')">&#11015; CSV</button><a class="btn-open" href="' + run.reportUrl + '" target="_blank">&#8599; Open</a></div>';
       html += '</div>';
     });
 
@@ -720,6 +720,27 @@ function closeResults() {
   document.getElementById('resultsOverlay').classList.remove('active');
 }
 
+async function downloadCSV(app, project, runId) {
+  try {
+    var res = await fetch('/api/' + app + '/' + project + '/' + runId + '/csv-files');
+    var files = await res.json();
+    if (files.length === 0) {
+      alert('No CSV files found for this run.');
+      return;
+    }
+    files.forEach(function(f) {
+      var a = document.createElement('a');
+      a.href = f.url;
+      a.download = f.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+  } catch(err) {
+    alert('Error downloading CSV: ' + err.message);
+  }
+}
+
 // ===========================
 // LOCUST DASHBOARD FUNCTIONS
 // ===========================
@@ -809,13 +830,34 @@ async function loadLocustRuns(scriptName, el) {
       html += '<div class="run-stat t"><div class="num">' + run.avgResponseTime + 'ms</div><div class="lbl">Avg RT</div></div>';
       html += '</div>';
       html += '<div class="run-duration">' + run.passRate + '%</div>';
-      html += '<div class="run-action"><button class="btn-results" onclick="openLocustStats(\'' + scriptName + '\',\'' + run.id + '\')">&#9776; Stats</button></div>';
+      html += '<div class="run-action"><button class="btn-results" onclick="openLocustStats(\'' + scriptName + '\',\'' + run.id + '\')">&#9776; Stats</button><button class="btn-results" onclick="downloadLocustCSV(\'' + scriptName + '\',\'' + run.id + '\')">&#11015; CSV</button></div>';
       html += '</div>';
     });
 
     content.innerHTML = html;
   } catch(err) {
     content.innerHTML = '<div class="empty-state"><div class="es-icon">&#9888;</div><p style="color:#f85149;">Error loading runs: ' + err.message + '</p></div>';
+  }
+}
+
+async function downloadLocustCSV(scriptName, runId) {
+  try {
+    var res = await fetch('/api/locust/' + scriptName + '/' + runId + '/stats');
+    var data = await res.json();
+    if (!data.files || data.files.length === 0) {
+      alert('No CSV files found for this run.');
+      return;
+    }
+    data.files.forEach(function(f) {
+      var a = document.createElement('a');
+      a.href = '/reports/Locust/' + scriptName + '/' + runId + '/' + f.name;
+      a.download = f.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+  } catch(err) {
+    alert('Error downloading CSV: ' + err.message);
   }
 }
 
