@@ -242,6 +242,12 @@ function parseCSVLine(line) {
   return result;
 }
 
+// Serve AI Tools page
+app.use("/ai-tools", express.static(path.join(__dirname, "ai-tools")));
+app.get("/ai", (req, res) => {
+  res.sendFile(path.join(__dirname, "ai-tools", "ai-tools.html"));
+});
+
 app.get("/", (req, res) => {
   res.redirect("/dashboard");
 });

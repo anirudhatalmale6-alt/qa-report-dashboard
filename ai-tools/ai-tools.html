@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Test Tools - QA Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f1117; color: #e1e4e8;
+  }
+
+  .topbar {
+    height: 48px; background: #161b22; border-bottom: 1px solid #21262d;
+    display: flex; align-items: center; padding: 0 24px; gap: 16px;
+  }
+  .topbar h1 { font-size: 15px; color: #58a6ff; font-weight: 600; }
+  .topbar a { color: #8b949e; font-size: 13px; text-decoration: none; }
+  .topbar a:hover { color: #58a6ff; }
+  .topbar .status { margin-left: auto; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .dot-green { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; }
+  .dot-red { width: 8px; height: 8px; border-radius: 50%; background: #f85149; }
+  .dot-gray { width: 8px; height: 8px; border-radius: 50%; background: #484f58; }
+
+  .tabs {
+    display: flex; background: #161b22; border-bottom: 1px solid #21262d; padding: 0 24px;
+  }
+  .tab {
+    padding: 12px 20px; font-size: 14px; color: #8b949e; cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.15s;
+  }
+  .tab:hover { color: #c9d1d9; }
+  .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+
+  .content { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: #161b22; border: 1px solid #21262d; border-radius: 10px;
+    padding: 20px; margin-bottom: 20px;
+  }
+  .card h3 { font-size: 15px; color: #f0f6fc; margin-bottom: 12px; }
+  .card p { font-size: 13px; color: #8b949e; margin-bottom: 12px; }
+
+  .row { display: flex; gap: 20px; }
+  .col { flex: 1; min-width: 0; }
+
+  textarea {
+    width: 100%; min-height: 300px; padding: 12px; background: #0d1117;
+    border: 1px solid #21262d; border-radius: 8px; color: #e1e4e8;
+    font-family: 'Consolas', 'Monaco', monospace; font-size: 13px;
+    resize: vertical; outline: none; line-height: 1.5;
+  }
+  textarea:focus { border-color: #58a6ff; }
+  textarea::placeholder { color: #484f58; }
+
+  label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  select, input[type="text"] {
+    padding: 8px 12px; background: #0d1117; border: 1px solid #21262d;
+    border-radius: 6px; color: #e1e4e8; font-size: 13px; outline: none;
+  }
+  select:focus, input[type="text"]:focus { border-color: #58a6ff; }
+
+  .btn {
+    padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px;
+    font-weight: 500; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary { background: #238636; color: #fff; }
+  .btn-primary:hover { background: #2ea043; }
+  .btn-primary:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+  .btn-secondary { background: transparent; border: 1px solid #30363d; color: #58a6ff; }
+  .btn-secondary:hover { background: #58a6ff15; }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+
+  /* Results table */
+  .results-table {
+    width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px;
+  }
+  .results-table th {
+    background: #1c2129; color: #8b949e; font-weight: 600; font-size: 11px;
+    text-transform: uppercase; padding: 10px 12px; text-align: left;
+    border-bottom: 1px solid #21262d;
+  }
+  .results-table td {
+    padding: 10px 12px; border-bottom: 1px solid #21262d; color: #c9d1d9;
+    font-family: 'Consolas', monospace; font-size: 12px;
+    max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .results-table tr:hover td { background: #1c2129; }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;
+  }
+  .badge-high { background: #3fb95020; color: #3fb950; }
+  .badge-medium { background: #d2992220; color: #d29922; }
+  .badge-low { background: #f8514920; color: #f85149; }
+  .badge-changed { background: #58a6ff20; color: #58a6ff; }
+  .badge-same { background: #21262d; color: #484f58; }
+
+  .spinner-sm { display: inline-block; width: 14px; height: 14px; border: 2px solid #21262d; border-top-color: #58a6ff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .progress { font-size: 13px; color: #8b949e; padding: 16px 0; display: flex; align-items: center; gap: 8px; }
+
+  .summary-row { display: flex; gap: 16px; margin-bottom: 16px; }
+  .summary-card {
+    flex: 1; background: #0d1117; border: 1px solid #21262d; border-radius: 8px;
+    padding: 12px 16px; text-align: center;
+  }
+  .summary-card .val { font-size: 24px; font-weight: 700; }
+  .summary-card .lbl { font-size: 11px; color: #8b949e; text-transform: uppercase; }
+  .summary-card.changed .val { color: #58a6ff; }
+  .summary-card.high .val { color: #3fb950; }
+  .summary-card.medium .val { color: #d29922; }
+  .summary-card.low .val { color: #f85149; }
+
+  .code-diff { background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 12px; font-family: 'Consolas', monospace; font-size: 12px; line-height: 1.6; overflow-x: auto; max-height: 400px; overflow-y: auto; margin-top: 12px; }
+  .diff-old { color: #f85149; text-decoration: line-through; }
+  .diff-new { color: #3fb950; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>AI Test Tools</h1>
+  <a href="/dashboard">Back to Dashboard</a>
+  <div class="status" id="ollamaStatus"><div class="dot-gray"></div> Checking Ollama...</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('fixer',this)">Locator Fixer</div>
+  <div class="tab" onclick="switchTab('generator',this)">Script Generator</div>
+</div>
+
+<div class="content">
+
+  <!-- TAB 1: LOCATOR FIXER -->
+  <div class="panel active" id="panel-fixer">
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <h3>1. Paste Locator File</h3>
+          <p>Paste your *_locators.py file content (e.g., wss_page_locators.py)</p>
+          <textarea id="locatorCode" placeholder="class WSSPageLocators():
+    WSS_CONTACTINFORMATION_LIST = &quot;//form[@name='accountSummaryForm']/fieldset/table/tbody/tr/td[1]/table/tbody/tr&quot;
+    WSS_BENESTRUC = &quot;(//form[@name='accountSummaryForm']/fieldset[3]/table/tbody/tr[1]/td[2])[1]&quot;
+    ..."></textarea>
+          <div style="margin-top:8px;">
+            <button class="btn btn-secondary" onclick="parseLocators()">Parse Locators</button>
+            <span id="parseResult" style="margin-left:12px;font-size:13px;color:#8b949e;"></span>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h3>2. Paste New Page HTML</h3>
+          <p>Right-click the page in browser > Inspect > Copy outerHTML of the main content area</p>
+          <textarea id="pageHtml" placeholder="<div class=&quot;main-content&quot;>
+  <form name=&quot;accountSummaryForm&quot; role=&quot;form&quot; aria-label=&quot;Account Summary&quot;>
+    <fieldset>
+      ...
+    </fieldset>
+  </form>
+</div>"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>3. Fix Locators</h3>
+      <div class="toolbar">
+        <label style="margin-bottom:0;">Model:</label>
+        <select id="modelSelect">
+          <option value="llama3.1">llama3.1</option>
+          <option value="codellama">codellama</option>
+          <option value="mistral">mistral</option>
+        </select>
+        <label style="margin-bottom:0;">Batch Size:</label>
+        <select id="batchSize">
+          <option value="3">3</option>
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+        </select>
+        <button class="btn btn-primary" id="fixBtn" onclick="fixLocators()">Fix Broken Locators</button>
+        <span id="fixProgress" class="progress" style="display:none;"><span class="spinner-sm"></span> Analyzing...</span>
+      </div>
+
+      <div id="fixResults"></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: SCRIPT GENERATOR -->
+  <div class="panel" id="panel-generator">
+    <div class="card">
+      <h3>Describe Your Test</h3>
+      <p>Describe what the test should do in plain English. The AI will generate a Playwright script following your framework patterns.</p>
+      <textarea id="testDescription" style="min-height:120px;" placeholder="Example: Login to WSS as a retired member, navigate to Healthcare Summary page, verify the health coverage table shows dental and vision rows, then logout."></textarea>
+    </div>
+
+    <div class="card">
+      <h3>Framework Context (optional)</h3>
+      <p>Paste sample test file or page object code so the AI follows your patterns.</p>
+      <textarea id="frameworkContext" style="min-height:200px;" placeholder="Paste an example test_wss_ui.py or page object here so the AI matches your coding style..."></textarea>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <button class="btn btn-primary" id="genBtn" onclick="generateScript()">Generate Script</button>
+        <span id="genProgress" class="progress" style="display:none;"><span class="spinner-sm"></span> Generating...</span>
+      </div>
+      <div id="genResult"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var AI_API = 'http://localhost:5001';
+var parsedLocators = [];
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// Check Ollama status on load
+async function checkOllama() {
+  var el = document.getElementById('ollamaStatus');
+  try {
+    var res = await fetch(AI_API + '/api/ai/status');
+    var data = await res.json();
+    if (data.status === 'connected') {
+      el.innerHTML = '<div class="dot-green"></div> Ollama connected (' + data.models.length + ' models)';
+      // Update model dropdown
+      var sel = document.getElementById('modelSelect');
+      sel.innerHTML = '';
+      data.models.forEach(function(m) {
+        var opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        sel.appendChild(opt);
+      });
+    } else {
+      el.innerHTML = '<div class="dot-red"></div> Ollama: ' + data.message;
+    }
+  } catch(e) {
+    el.innerHTML = '<div class="dot-red"></div> AI API offline (start: python locator_api.py)';
+  }
+}
+checkOllama();
+
+async function parseLocators() {
+  var code = document.getElementById('locatorCode').value;
+  if (!code.trim()) { alert('Paste locator file content first'); return; }
+
+  try {
+    var res = await fetch(AI_API + '/api/ai/parse-locators', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({code: code})
+    });
+    var data = await res.json();
+    parsedLocators = data.locators;
+    document.getElementById('parseResult').textContent = 'Found ' + data.count + ' locators';
+    document.getElementById('parseResult').style.color = '#3fb950';
+  } catch(e) {
+    document.getElementById('parseResult').textContent = 'Error: ' + e.message;
+    document.getElementById('parseResult').style.color = '#f85149';
+  }
+}
+
+async function fixLocators() {
+  if (parsedLocators.length === 0) {
+    alert('Parse locators first (click "Parse Locators" button)');
+    return;
+  }
+  var html = document.getElementById('pageHtml').value;
+  if (!html.trim()) {
+    alert('Paste the new page HTML first');
+    return;
+  }
+
+  var model = document.getElementById('modelSelect').value;
+  var batchSize = parseInt(document.getElementById('batchSize').value);
+
+  document.getElementById('fixBtn').disabled = true;
+  document.getElementById('fixProgress').style.display = 'flex';
+  document.getElementById('fixResults').innerHTML = '';
+
+  try {
+    var res = await fetch(AI_API + '/api/ai/fix-locators', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        locators: parsedLocators,
+        html: html,
+        model: model,
+        batch_size: batchSize
+      })
+    });
+    var data = await res.json();
+    displayFixResults(data.fixes);
+  } catch(e) {
+    document.getElementById('fixResults').innerHTML = '<p style="color:#f85149;">Error: ' + e.message + '</p>';
+  } finally {
+    document.getElementById('fixBtn').disabled = false;
+    document.getElementById('fixProgress').style.display = 'none';
+  }
+}
+
+function displayFixResults(fixes) {
+  var changed = fixes.filter(f => f.old !== f.new).length;
+  var high = fixes.filter(f => f.confidence === 'high').length;
+  var medium = fixes.filter(f => f.confidence === 'medium').length;
+  var low = fixes.filter(f => f.confidence === 'low').length;
+
+  var html = '<div class="summary-row">';
+  html += '<div class="summary-card changed"><div class="val">' + changed + '</div><div class="lbl">Changed</div></div>';
+  html += '<div class="summary-card high"><div class="val">' + high + '</div><div class="lbl">High Confidence</div></div>';
+  html += '<div class="summary-card medium"><div class="val">' + medium + '</div><div class="lbl">Medium</div></div>';
+  html += '<div class="summary-card low"><div class="val">' + low + '</div><div class="lbl">Low / Review</div></div>';
+  html += '</div>';
+
+  html += '<table class="results-table"><thead><tr>';
+  html += '<th>Locator</th><th>Status</th><th>Confidence</th><th>Old Value</th><th>New Value</th><th>Reason</th>';
+  html += '</tr></thead><tbody>';
+
+  fixes.forEach(function(f) {
+    var statusBadge = f.old !== f.new ? '<span class="badge badge-changed">CHANGED</span>' : '<span class="badge badge-same">SAME</span>';
+    var confBadge = '<span class="badge badge-' + f.confidence + '">' + f.confidence.toUpperCase() + '</span>';
+    html += '<tr>';
+    html += '<td style="color:#f0f6fc;font-weight:500;">' + f.name + '</td>';
+    html += '<td>' + statusBadge + '</td>';
+    html += '<td>' + confBadge + '</td>';
+    html += '<td title="' + esc(f.old) + '">' + esc(f.old) + '</td>';
+    html += '<td title="' + esc(f.new) + '" style="color:' + (f.old !== f.new ? '#3fb950' : '#8b949e') + ';">' + esc(f.new) + '</td>';
+    html += '<td style="color:#8b949e;font-family:sans-serif;">' + esc(f.reason || '') + '</td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+
+  // Add copy button for updated code
+  html += '<div style="margin-top:16px;"><button class="btn btn-secondary" onclick="generateUpdatedFile()">Generate Updated File</button></div>';
+  html += '<div id="updatedCode"></div>';
+
+  document.getElementById('fixResults').innerHTML = html;
+
+  // Store fixes globally for file generation
+  window._currentFixes = fixes;
+}
+
+async function generateUpdatedFile() {
+  var code = document.getElementById('locatorCode').value;
+  var fixes = window._currentFixes;
+
+  try {
+    var res = await fetch(AI_API + '/api/ai/generate-file', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({original_code: code, fixes: fixes})
+    });
+    var data = await res.json();
+    document.getElementById('updatedCode').innerHTML = '<div class="code-diff"><pre>' + esc(data.updated_code) + '</pre></div>' +
+      '<button class="btn btn-secondary" style="margin-top:8px;" onclick="copyText(this)" data-text="' + esc(data.updated_code) + '">Copy to Clipboard</button>';
+  } catch(e) {
+    document.getElementById('updatedCode').innerHTML = '<p style="color:#f85149;">Error: ' + e.message + '</p>';
+  }
+}
+
+async function generateScript() {
+  var desc = document.getElementById('testDescription').value;
+  if (!desc.trim()) { alert('Describe the test first'); return; }
+
+  var context = document.getElementById('frameworkContext').value;
+  var model = document.getElementById('modelSelect').value;
+
+  document.getElementById('genBtn').disabled = true;
+  document.getElementById('genProgress').style.display = 'flex';
+  document.getElementById('genResult').innerHTML = '';
+
+  try {
+    var res = await fetch(AI_API + '/api/ai/generate-script', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({description: desc, framework_context: context, model: model})
+    });
+    var data = await res.json();
+    document.getElementById('genResult').innerHTML =
+      '<div class="code-diff"><pre>' + esc(data.script) + '</pre></div>' +
+      '<button class="btn btn-secondary" style="margin-top:8px;" onclick="copyCode()">Copy to Clipboard</button>';
+    window._generatedScript = data.script;
+  } catch(e) {
+    document.getElementById('genResult').innerHTML = '<p style="color:#f85149;">Error: ' + e.message + '</p>';
+  } finally {
+    document.getElementById('genBtn').disabled = false;
+    document.getElementById('genProgress').style.display = 'none';
+  }
+}
+
+function copyCode() {
+  if (window._generatedScript) {
+    navigator.clipboard.writeText(window._generatedScript);
+  }
+}
+
+function copyText(btn) {
+  var text = btn.getAttribute('data-text');
+  if (text) navigator.clipboard.writeText(text);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
