@@ -52,6 +52,7 @@ def pytest_addoption(parser):
     parser.addoption("--all", action="store_true", help="Run all tests, ignoring Execute flag")
     parser.addoption("--project", default="default", help="Project name for dashboard")
     parser.addoption("--mode", default="uat", help="Run mode: 'prod' for production (single browser, manual login) or 'uat' for UAT (parallel, auto login)")
+    parser.addoption("--browser", default="msedge", help="Browser for prod mode: 'msedge', 'chromium', 'firefox', 'webkit'")
 
 #######################
 # Environment Config
@@ -221,13 +222,38 @@ def prod_browser(request, playwright_instance, env_config):
         yield None
         return
 
-    browser_name = "msedge"  # Production default
-    browser = playwright_instance.chromium.launch(
-        channel="msedge",
-        headless=False,
-        slow_mo=2000,
-        args=["--start-maximized"]
-    )
+    browser_name = request.config.getoption("--browser").lower()
+    logger.info(f"Production mode: Launching browser '{browser_name}'")
+
+    if browser_name == "msedge":
+        browser = playwright_instance.chromium.launch(
+            channel="msedge",
+            headless=False,
+            slow_mo=2000,
+            args=["--start-maximized"]
+        )
+    elif browser_name == "chrome":
+        browser = playwright_instance.chromium.launch(
+            channel="chrome",
+            headless=False,
+            slow_mo=2000,
+            args=["--start-maximized"]
+        )
+    elif browser_name in ("chromium", "firefox", "webkit"):
+        browser = getattr(playwright_instance, browser_name).launch(
+            headless=False,
+            slow_mo=2000,
+            args=["--start-maximized"] if browser_name == "chromium" else []
+        )
+    else:
+        # Default to Edge
+        browser = playwright_instance.chromium.launch(
+            channel="msedge",
+            headless=False,
+            slow_mo=2000,
+            args=["--start-maximized"]
+        )
+        browser_name = "msedge"
     context = browser.new_context(accept_downloads=True)
     context.set_default_timeout(120000)
     context.set_default_navigation_timeout(120000)

@@ -13,7 +13,10 @@ param(
     [string]$DashboardPath = ".",
 
     [Parameter(Mandatory=$false)]
-    [string]$ReportPath = "allure-report"
+    [string]$ReportPath = "allure-report",
+
+    [Parameter(Mandatory=$false)]
+    [string]$ResultsPath = "test-results"
 )
 
 Write-Host ">>> Allure Publish Script"
@@ -59,7 +62,8 @@ if (Test-Path $widgetSummary) {
 }
 
 # Copy results CSV files if they exist
-$resultsDir = "test-results"
+$resultsDir = $ResultsPath
+Write-Host "Looking for CSV results in: $resultsDir"
 if (Test-Path $resultsDir) {
     $csvFiles = Get-ChildItem -Path $resultsDir -Filter "results_*.csv"
     if ($csvFiles.Count -gt 0) {
