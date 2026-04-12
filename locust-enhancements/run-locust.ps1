@@ -142,8 +142,11 @@ if ($Background) {
     Write-Host "Stop it:       Stop-Job -Name 'Locust_$scriptName'"
     Write-Host ""
 
+    # Convert locustArgs array to a single string (PowerShell Start-Job can't pass arrays reliably)
+    $locustArgsString = ($locustArgs | ForEach-Object { if ($_ -match '\s') { "`"$_`"" } else { "$_" } }) -join ' '
+
     $jobScript = {
-        param($locustArgs, $logFile, $errFile, $csvPrefix, $scriptName, $EnvName, $DashboardPath, $publishScriptPath, $workingDir)
+        param($locustArgsString, $logFile, $errFile, $csvPrefix, $scriptName, $EnvName, $DashboardPath, $publishScriptPath, $workingDir)
 
         # Background jobs start in user home - switch to actual working directory
         Set-Location $workingDir
@@ -153,11 +156,12 @@ if ($Background) {
         $startTime = Get-Date
         Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Working directory: $(Get-Location)"
         Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Starting Locust..."
-        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Command: locust $($locustArgs -join ' ')"
+        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Command: locust $locustArgsString"
 
-        # Run Locust directly with & operator (not Start-Process - avoids path issues)
-        # --logfile captures Locust's own output; 2>$errFile captures stderr
-        & locust @locustArgs 2>$errFile
+        # Run Locust using Invoke-Expression (args passed as string to avoid array flattening)
+        # --logfile captures Locust's own output; stderr goes to err file
+        $cmd = "locust $locustArgsString 2>`"$errFile`""
+        Invoke-Expression $cmd
 
         $exitCode = $LASTEXITCODE
         $endTime = Get-Date
@@ -203,9 +207,8 @@ if ($Background) {
         Write-Output "========================================="
     }
 
-    # Pass locustArgs as a nested array so PowerShell doesn't flatten it
     Start-Job -Name "Locust_$scriptName" -ScriptBlock $jobScript `
-        -ArgumentList @(,$locustArgs), $logFile, $errFile, $csvPrefix, $scriptName, $EnvName, $DashboardPath, $publishScriptPath, $workingDir
+        -ArgumentList $locustArgsString, $logFile, $errFile, $csvPrefix, $scriptName, $EnvName, $DashboardPath, $publishScriptPath, $workingDir
 
     return
 }
