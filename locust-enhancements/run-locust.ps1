@@ -63,6 +63,8 @@ param(
 
     [switch]$NoEnvName,
 
+    [string]$App = "",
+
     [string]$DashboardPath = "",
 
     [switch]$Background,
@@ -109,6 +111,9 @@ $locustArgs = @(
 )
 if (-not $NoEnvName) {
     $locustArgs += @("--env-name", $EnvName)
+}
+if ($App) {
+    $locustArgs += @("--app", $App)
 }
 if ($ExtraArgs) {
     $locustArgs += $ExtraArgs.Split(" ")
