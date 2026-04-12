@@ -83,11 +83,40 @@ $avgResponseTime = 0
 
 if ($statsFile) {
     $statsContent = Import-Csv -Path $statsFile.FullName
+
+    # Debug: show CSV column headers
+    if ($statsContent.Count -gt 0) {
+        $headers = $statsContent[0].PSObject.Properties.Name
+        Write-Host "[Locust Publish] CSV columns: $($headers -join ', ')"
+    }
+
     $aggregated = $statsContent | Where-Object { $_.Name -eq "Aggregated" }
     if ($aggregated) {
-        $totalRequests = [int]($aggregated.'Request Count')
-        $totalFailures = [int]($aggregated.'Failure Count')
-        $avgResponseTime = [math]::Round([double]($aggregated.'Average Response Time'), 0)
+        Write-Host "[Locust Publish] Found Aggregated row"
+
+        # Try standard column names first, then alternative names
+        $reqCount = $aggregated.'Request Count'
+        if (-not $reqCount) { $reqCount = $aggregated.'# Requests' }
+        if (-not $reqCount) { $reqCount = $aggregated.'# reqs' }
+
+        $failCount = $aggregated.'Failure Count'
+        if (-not $failCount) { $failCount = $aggregated.'# Failures' }
+        if (-not $failCount) { $failCount = $aggregated.'# fails' }
+
+        $avgRT = $aggregated.'Average Response Time'
+        if (-not $avgRT) { $avgRT = $aggregated.'Average response time' }
+        if (-not $avgRT) { $avgRT = $aggregated.'Avg Response Time' }
+
+        Write-Host "[Locust Publish] Raw values - Requests: '$reqCount', Failures: '$failCount', Avg RT: '$avgRT'"
+
+        if ($reqCount) { $totalRequests = [int]$reqCount }
+        if ($failCount) { $totalFailures = [int]$failCount }
+        if ($avgRT) { $avgResponseTime = [math]::Round([double]$avgRT, 0) }
+    } else {
+        Write-Host "[Locust Publish] WARNING: No 'Aggregated' row found in stats CSV"
+        # Show available Name values for debugging
+        $names = $statsContent | ForEach-Object { $_.Name } | Select-Object -Unique
+        Write-Host "[Locust Publish] Available rows: $($names -join ', ')"
     }
 }
 
