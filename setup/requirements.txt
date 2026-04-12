@@ -1,0 +1,38 @@
+# ===========================
+# QA Automation Framework - Python Dependencies
+# ===========================
+# Install: pip install -r requirements.txt
+
+# --- Playwright (UI Testing) ---
+pytest==8.2.2
+pytest-playwright==0.5.1
+playwright==1.45.0
+pytest-xdist==3.6.1
+pytest-html==4.1.1
+
+# --- Allure Reporting ---
+allure-pytest==2.15.3
+
+# --- Locust (Load Testing) ---
+locust>=2.29.0
+gevent==24.2.1
+
+# --- Data & Excel ---
+pandas==2.2.3
+openpyxl==3.1.5
+
+# --- API & HTTP ---
+requests>=2.32.3
+
+# --- Test Utilities ---
+assertpy==1.1
+Faker==36.1.1
+pyyaml==6.0.1
+jsonpath-ng==1.6.1
+
+# --- Database ---
+pyodbc==5.2.0
+
+# --- Desktop Automation (optional - only if running desktop tests) ---
+# pyautoit==0.6.0
+# pyautogui==0.9.54
