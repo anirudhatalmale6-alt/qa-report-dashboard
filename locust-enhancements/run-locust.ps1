@@ -20,10 +20,13 @@
     Max run time (default: "480m" for 8 hours). Script stops early if data exhausted.
 
 .PARAMETER EnvName
-    Target environment (default: "UAT75")
+    Target environment (default: "UAT75"). Only passed to Locust if script supports --env-name.
+
+.PARAMETER NoEnvName
+    Skip passing --env-name to Locust (for older scripts that don't register it).
 
 .PARAMETER DashboardPath
-    Path to QA Dashboard folder. Set your default below.
+    Path to QA Dashboard folder. Set your default below or use $env:QA_DASHBOARD_PATH.
 
 .PARAMETER Background
     Run in background (default: $false). If $true, runs as a background job.
@@ -32,17 +35,18 @@
     Additional Locust arguments (e.g., "--only-summary")
 
 .EXAMPLE
-    # Run in foreground (see output in terminal)
-    .\run-locust.ps1 -ScriptFile "ESS_US_108585.py" -Users 30 -SpawnRate 0.2 -EnvName UAT75
+    # Run in foreground
+    .\run-locust.ps1 -ScriptFile "wss/WSS_Retiredmem.py" -Users 1 -SpawnRate 0.2 -EnvName UAT75
 
-    # Run in background (terminal is free, results auto-publish)
-    .\run-locust.ps1 -ScriptFile "ESS_US_108585.py" -Users 30 -SpawnRate 0.2 -EnvName UAT75 -Background
+    # Run in background
+    .\run-locust.ps1 -ScriptFile "wss/WSS_Retiredmem.py" -Users 1 -SpawnRate 0.2 -EnvName UAT75 -Background
 
-    # Check background job status
+    # Older script without --env-name support
+    .\run-locust.ps1 -ScriptFile "wss/108585.py" -Users 30 -SpawnRate 0.2 -NoEnvName -Background
+
+    # Check background job
     Get-Job | Format-Table
-
-    # View background job output
-    Receive-Job -Name "Locust_ESS_US_108585"
+    Receive-Job -Name "Locust_WSS_Retiredmem" -Keep
 #>
 
 param(
@@ -57,7 +61,9 @@ param(
 
     [string]$EnvName = "UAT75",
 
-    [string]$DashboardPath = "",  # <-- SET YOUR DEFAULT: e.g., "C:\qa-report-dashboard"
+    [switch]$NoEnvName,
+
+    [string]$DashboardPath = "",
 
     [switch]$Background,
 
@@ -65,7 +71,7 @@ param(
 )
 
 # ===========================
-# CONFIGURATION - UPDATE THESE
+# CONFIGURATION
 # ===========================
 if (-not $DashboardPath) {
     $DashboardPath = $env:QA_DASHBOARD_PATH
@@ -85,15 +91,32 @@ $scriptName = [System.IO.Path]::GetFileNameWithoutExtension($ScriptFile)
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $csvPrefix = Join-Path -Path "locust-results" -ChildPath "${scriptName}_${timestamp}"
 $logFile = Join-Path -Path "logs" -ChildPath "${scriptName}_${timestamp}.log"
+$errFile = Join-Path -Path "logs" -ChildPath "${scriptName}_${timestamp}_err.log"
 
 # Ensure directories exist
 New-Item -ItemType Directory -Path "locust-results" -Force | Out-Null
 New-Item -ItemType Directory -Path "logs" -Force | Out-Null
 
-# ===========================
-# BUILD LOCUST COMMAND
-# ===========================
-$locustCmd = "locust -f `"$ScriptFile`" -u $Users -r $SpawnRate --headless -t $RunTime --env-name $EnvName --csv `"$csvPrefix`" $ExtraArgs"
+# Build argument list
+$locustArgs = @(
+    "-f", $ScriptFile,
+    "-u", $Users,
+    "-r", $SpawnRate,
+    "--headless",
+    "-t", $RunTime,
+    "--csv", $csvPrefix,
+    "--logfile", $logFile
+)
+if (-not $NoEnvName) {
+    $locustArgs += @("--env-name", $EnvName)
+}
+if ($ExtraArgs) {
+    $locustArgs += $ExtraArgs.Split(" ")
+}
+
+# Resolve full paths BEFORE entering background job (where $PSScriptRoot is empty)
+$publishScriptPath = Join-Path -Path $PSScriptRoot -ChildPath "locust-publish.ps1"
+$workingDir = (Get-Location).Path
 
 # ===========================
 # BACKGROUND MODE
@@ -110,52 +133,74 @@ if ($Background) {
     Write-Host ""
     Write-Host "You can now close this terminal or work on other things."
     Write-Host "Check status:  Get-Job -Name 'Locust_$scriptName'"
-    Write-Host "View output:   Receive-Job -Name 'Locust_$scriptName'"
+    Write-Host "View output:   Receive-Job -Name 'Locust_$scriptName' -Keep"
     Write-Host "Stop it:       Stop-Job -Name 'Locust_$scriptName'"
     Write-Host ""
 
     $jobScript = {
-        param($ScriptFile, $Users, $SpawnRate, $RunTime, $EnvName, $csvPrefix, $logFile, $ExtraArgs, $DashboardPath, $scriptName)
+        param($locustArgs, $logFile, $errFile, $csvPrefix, $scriptName, $EnvName, $DashboardPath, $publishScriptPath, $workingDir)
+
+        # Background jobs start in user home - switch to actual working directory
+        Set-Location $workingDir
+        New-Item -ItemType Directory -Path "locust-results" -Force | Out-Null
+        New-Item -ItemType Directory -Path "logs" -Force | Out-Null
 
         $startTime = Get-Date
-        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Starting Locust: $ScriptFile"
-        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Command: locust -f $ScriptFile -u $Users -r $SpawnRate --headless -t $RunTime --env-name $EnvName --csv $csvPrefix $ExtraArgs"
+        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Working directory: $(Get-Location)"
+        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Starting Locust..."
+        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Command: locust $($locustArgs -join ' ')"
 
-        # Run Locust
-        $process = Start-Process -FilePath "locust" `
-            -ArgumentList "-f `"$ScriptFile`" -u $Users -r $SpawnRate --headless -t $RunTime --env-name $EnvName --csv `"$csvPrefix`" $ExtraArgs" `
-            -NoNewWindow -Wait -PassThru `
-            -RedirectStandardOutput $logFile `
-            -RedirectStandardError (Join-Path -Path "logs" -ChildPath "${scriptName}_${timestamp}_err.log")
+        # Run Locust directly with & operator (not Start-Process - avoids path issues)
+        # --logfile captures Locust's own output; 2>$errFile captures stderr
+        & locust @locustArgs 2>$errFile
 
+        $exitCode = $LASTEXITCODE
         $endTime = Get-Date
         $duration = $endTime - $startTime
 
-        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Locust finished. Exit code: $($process.ExitCode)"
+        Write-Output ""
+        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Locust finished. Exit code: $exitCode"
         Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Duration: $($duration.ToString('hh\:mm\:ss'))"
 
+        # Show stderr if any errors were captured
+        if ((Test-Path $errFile) -and (Get-Item $errFile).Length -gt 0) {
+            Write-Output "[$(Get-Date -Format 'HH:mm:ss')] STDERR output:"
+            Get-Content $errFile | ForEach-Object { Write-Output "  $_" }
+        }
+
+        # Show log tail
+        if ((Test-Path $logFile) -and (Get-Item $logFile).Length -gt 0) {
+            Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Log tail:"
+            Get-Content $logFile -Tail 10 | ForEach-Object { Write-Output "  $_" }
+        }
+
         # Publish to dashboard
-        $publishScript = Join-Path -Path $PSScriptRoot -ChildPath "locust-publish.ps1"
-        if (Test-Path $publishScript) {
-            Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Publishing to dashboard..."
-            & $publishScript -ScriptName $scriptName -CsvPrefix $csvPrefix -DashboardPath $DashboardPath -EnvName $EnvName
-            Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Published to QA Dashboard!"
+        if ($exitCode -eq 0 -or $exitCode -eq $null) {
+            if (Test-Path $publishScriptPath) {
+                Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Publishing to dashboard..."
+                & $publishScriptPath -ScriptName $scriptName -CsvPrefix $csvPrefix -DashboardPath $DashboardPath -EnvName $EnvName
+                Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Published to QA Dashboard!"
+            } else {
+                Write-Output "[$(Get-Date -Format 'HH:mm:ss')] WARNING: locust-publish.ps1 not found at: $publishScriptPath"
+            }
         } else {
-            Write-Output "[$(Get-Date -Format 'HH:mm:ss')] WARNING: locust-publish.ps1 not found at $publishScript"
+            Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Locust failed (exit code $exitCode). Skipping publish."
+            Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Check log: $logFile"
+            Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Check errors: $errFile"
         }
 
         Write-Output ""
         Write-Output "========================================="
         Write-Output "  LOCUST RUN COMPLETE"
-        Write-Output "  Script: $ScriptFile"
+        Write-Output "  Script: $($locustArgs[1])"
         Write-Output "  Duration: $($duration.ToString('hh\:mm\:ss'))"
-        Write-Output "  CSV: $csvPrefix"
-        Write-Output "  Log: $logFile"
+        Write-Output "  Exit Code: $exitCode"
         Write-Output "========================================="
     }
 
+    # Pass locustArgs as a nested array so PowerShell doesn't flatten it
     Start-Job -Name "Locust_$scriptName" -ScriptBlock $jobScript `
-        -ArgumentList $ScriptFile, $Users, $SpawnRate, $RunTime, $EnvName, $csvPrefix, $logFile, $ExtraArgs, $DashboardPath, $scriptName
+        -ArgumentList @(,$locustArgs), $logFile, $errFile, $csvPrefix, $scriptName, $EnvName, $DashboardPath, $publishScriptPath, $workingDir
 
     return
 }
@@ -174,42 +219,31 @@ Write-Host "================================================================"
 
 $startTime = Get-Date
 
-# Run Locust (foreground - output visible in terminal)
 Write-Host ""
-Write-Host "Running: $locustCmd"
+Write-Host "Running: locust $($locustArgs -join ' ')"
 Write-Host ""
 
-# Use & operator with argument list for reliable execution
-$locustArgs = @(
-    "-f", $ScriptFile,
-    "-u", $Users,
-    "-r", $SpawnRate,
-    "--headless",
-    "-t", $RunTime,
-    "--env-name", $EnvName,
-    "--csv", $csvPrefix
-)
-if ($ExtraArgs) {
-    $locustArgs += $ExtraArgs.Split(" ")
-}
+# Run Locust - --logfile writes Locust's log; 2>&1 shows stderr in terminal too
+& locust @locustArgs 2>&1
 
-& locust @locustArgs 2>&1 | Tee-Object -FilePath $logFile
-
+$exitCode = $LASTEXITCODE
 $endTime = Get-Date
 $duration = $endTime - $startTime
 
 Write-Host ""
-Write-Host "[Locust Runner] Finished. Duration: $($duration.ToString('hh\:mm\:ss'))"
+Write-Host "[Locust Runner] Finished. Exit code: $exitCode | Duration: $($duration.ToString('hh\:mm\:ss'))"
 
 # Auto-publish to dashboard
-$publishScript = Join-Path -Path $PSScriptRoot -ChildPath "locust-publish.ps1"
-if (Test-Path $publishScript) {
-    Write-Host "[Locust Runner] Publishing to QA Dashboard..."
-    & $publishScript -ScriptName $scriptName -CsvPrefix $csvPrefix -DashboardPath $DashboardPath -EnvName $EnvName
-    Write-Host "[Locust Runner] Done! Check dashboard at http://localhost:3000/dashboard"
+if ($exitCode -eq 0 -or $exitCode -eq $null) {
+    if (Test-Path $publishScriptPath) {
+        Write-Host "[Locust Runner] Publishing to QA Dashboard..."
+        & $publishScriptPath -ScriptName $scriptName -CsvPrefix $csvPrefix -DashboardPath $DashboardPath -EnvName $EnvName
+        Write-Host "[Locust Runner] Done! Check dashboard at http://localhost:3000/dashboard"
+    } else {
+        Write-Host "[Locust Runner] WARNING: locust-publish.ps1 not found at: $publishScriptPath"
+    }
 } else {
-    Write-Host "[Locust Runner] WARNING: locust-publish.ps1 not found. Copy it to: $PSScriptRoot"
-    Write-Host "[Locust Runner] CSV results saved at: $csvPrefix"
+    Write-Host "[Locust Runner] Locust failed (exit code $exitCode). Skipping publish."
 }
 
 Write-Host ""
@@ -217,6 +251,7 @@ Write-Host "========================================="
 Write-Host "  LOCUST RUN COMPLETE"
 Write-Host "  Script: $ScriptFile"
 Write-Host "  Duration: $($duration.ToString('hh\:mm\:ss'))"
+Write-Host "  Exit Code: $exitCode"
 Write-Host "  CSV: $csvPrefix"
 Write-Host "  Log: $logFile"
 Write-Host "========================================="
