@@ -164,8 +164,13 @@ app.get("/api/locust/:script/runs", (req, res) => {
     let summary = {};
     if (fs.existsSync(summaryPath)) {
       try {
-        summary = JSON.parse(fs.readFileSync(summaryPath, "utf-8"));
-      } catch (e) {}
+        let raw = fs.readFileSync(summaryPath, "utf-8");
+        // Strip BOM if present (PowerShell sometimes adds it)
+        if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+        summary = JSON.parse(raw);
+      } catch (e) {
+        console.error(`[Locust] Failed to parse ${summaryPath}:`, e.message);
+      }
     }
 
     runs.push({
