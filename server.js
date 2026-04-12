@@ -9,6 +9,121 @@ const REPORTS_DIR = path.join(__dirname, "reports");
 app.use("/dashboard", express.static(path.join(__dirname, "public")));
 app.use("/reports", express.static(REPORTS_DIR));
 
+// ===========================
+// LOCUST API ENDPOINTS (must be before generic :app/:project routes)
+// ===========================
+
+// API: list Locust scripts (projects)
+// e.g. /api/locust/scripts
+app.get("/api/locust/scripts", (req, res) => {
+  const locustDir = path.join(REPORTS_DIR, "Locust");
+  if (!fs.existsSync(locustDir)) {
+    return res.json([]);
+  }
+  const scripts = fs
+    .readdirSync(locustDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name);
+  res.json(scripts);
+});
+
+// API: list Locust runs for a script
+// e.g. /api/locust/WSS_Retiredmem/runs
+app.get("/api/locust/:script/runs", (req, res) => {
+  const { script } = req.params;
+  const scriptDir = path.join(REPORTS_DIR, "Locust", script);
+  if (!fs.existsSync(scriptDir)) {
+    return res.json([]);
+  }
+
+  const runs = [];
+  const entries = fs
+    .readdirSync(scriptDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && /^\d{8}/.test(d.name));
+
+  for (const entry of entries) {
+    const runPath = path.join(scriptDir, entry.name);
+    const summaryPath = path.join(runPath, "summary.json");
+
+    let summary = {};
+    if (fs.existsSync(summaryPath)) {
+      try {
+        let raw = fs.readFileSync(summaryPath, "utf-8");
+        // Strip BOM if present (PowerShell sometimes adds it)
+        if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+        summary = JSON.parse(raw);
+      } catch (e) {
+        console.error(`[Locust] Failed to parse ${summaryPath}:`, e.message);
+      }
+    }
+
+    runs.push({
+      id: entry.name,
+      date: summary.date || parseRunDate(entry.name),
+      scriptName: summary.scriptName || script,
+      envName: summary.envName || "unknown",
+      totalRequests: summary.totalRequests || 0,
+      totalFailures: summary.totalFailures || 0,
+      avgResponseTime: summary.avgResponseTime || 0,
+      passRate: summary.passRate || 0,
+      status: (summary.totalFailures || 0) > 0 ? "failed" : "passed",
+    });
+  }
+
+  runs.sort((a, b) => new Date(b.date) - new Date(a.date));
+  res.json(runs);
+});
+
+// API: get Locust stats CSV data for a specific run
+// e.g. /api/locust/WSS_Retiredmem/20260410_120000/stats
+app.get("/api/locust/:script/:runId/stats", (req, res) => {
+  const { script, runId } = req.params;
+  const runDir = path.join(REPORTS_DIR, "Locust", script, runId);
+  if (!fs.existsSync(runDir)) {
+    return res.json({ files: [] });
+  }
+
+  const csvFiles = fs.readdirSync(runDir).filter(f => f.endsWith(".csv"));
+  const files = [];
+
+  for (const file of csvFiles) {
+    const content = fs.readFileSync(path.join(runDir, file), "utf-8");
+    const lines = content.split("\n").filter(l => l.trim());
+    if (lines.length === 0) continue;
+
+    const headers = parseCSVLine(lines[0]);
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      const row = {};
+      headers.forEach((h, idx) => { row[h] = values[idx] || ""; });
+      rows.push(row);
+    }
+
+    // Determine file type from name pattern
+    let fileType = "other";
+    if (file.includes("_stats_history")) fileType = "history";
+    else if (file.includes("_stats")) fileType = "stats";
+    else if (file.includes("_failures")) fileType = "failures";
+    else if (file.includes("_exceptions")) fileType = "exceptions";
+
+    files.push({ name: file, type: fileType, headers, rows });
+  }
+
+  // Check for log file
+  const logPath = path.join(runDir, "script.log");
+  let logContent = null;
+  if (fs.existsSync(logPath)) {
+    logContent = fs.readFileSync(logPath, "utf-8").slice(-50000); // Last 50KB
+  }
+
+  res.json({ files, log: logContent });
+});
+
+// ===========================
+// ALLURE API ENDPOINTS
+// ===========================
+
 // API: list runs for app/project (2-level) - Allure reports
 // e.g. /api/ESS/App_Migration/runs
 app.get("/api/:app/:project/runs", (req, res) => {
@@ -123,117 +238,6 @@ app.get("/api/:app/:project/:runId/csv-files", (req, res) => {
     name: f,
     url: "/reports/" + appName + "/" + project + "/" + runId + "/csv-results/" + f
   })));
-});
-
-// ===========================
-// LOCUST API ENDPOINTS
-// ===========================
-
-// API: list Locust scripts (projects)
-// e.g. /api/locust/scripts
-app.get("/api/locust/scripts", (req, res) => {
-  const locustDir = path.join(REPORTS_DIR, "Locust");
-  if (!fs.existsSync(locustDir)) {
-    return res.json([]);
-  }
-  const scripts = fs
-    .readdirSync(locustDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name);
-  res.json(scripts);
-});
-
-// API: list Locust runs for a script
-// e.g. /api/locust/WSS_Retiredmem/runs
-app.get("/api/locust/:script/runs", (req, res) => {
-  const { script } = req.params;
-  const scriptDir = path.join(REPORTS_DIR, "Locust", script);
-  if (!fs.existsSync(scriptDir)) {
-    return res.json([]);
-  }
-
-  const runs = [];
-  const entries = fs
-    .readdirSync(scriptDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && /^\d{8}/.test(d.name));
-
-  for (const entry of entries) {
-    const runPath = path.join(scriptDir, entry.name);
-    const summaryPath = path.join(runPath, "summary.json");
-
-    let summary = {};
-    if (fs.existsSync(summaryPath)) {
-      try {
-        let raw = fs.readFileSync(summaryPath, "utf-8");
-        // Strip BOM if present (PowerShell sometimes adds it)
-        if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
-        summary = JSON.parse(raw);
-      } catch (e) {
-        console.error(`[Locust] Failed to parse ${summaryPath}:`, e.message);
-      }
-    }
-
-    runs.push({
-      id: entry.name,
-      date: summary.date || parseRunDate(entry.name),
-      scriptName: summary.scriptName || script,
-      envName: summary.envName || "unknown",
-      totalRequests: summary.totalRequests || 0,
-      totalFailures: summary.totalFailures || 0,
-      avgResponseTime: summary.avgResponseTime || 0,
-      passRate: summary.passRate || 0,
-      status: (summary.totalFailures || 0) > 0 ? "failed" : "passed",
-    });
-  }
-
-  runs.sort((a, b) => new Date(b.date) - new Date(a.date));
-  res.json(runs);
-});
-
-// API: get Locust stats CSV data for a specific run
-// e.g. /api/locust/WSS_Retiredmem/20260410_120000/stats
-app.get("/api/locust/:script/:runId/stats", (req, res) => {
-  const { script, runId } = req.params;
-  const runDir = path.join(REPORTS_DIR, "Locust", script, runId);
-  if (!fs.existsSync(runDir)) {
-    return res.json({ files: [] });
-  }
-
-  const csvFiles = fs.readdirSync(runDir).filter(f => f.endsWith(".csv"));
-  const files = [];
-
-  for (const file of csvFiles) {
-    const content = fs.readFileSync(path.join(runDir, file), "utf-8");
-    const lines = content.split("\n").filter(l => l.trim());
-    if (lines.length === 0) continue;
-
-    const headers = parseCSVLine(lines[0]);
-    const rows = [];
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseCSVLine(lines[i]);
-      const row = {};
-      headers.forEach((h, idx) => { row[h] = values[idx] || ""; });
-      rows.push(row);
-    }
-
-    // Determine file type from name pattern
-    let fileType = "other";
-    if (file.includes("_stats_history")) fileType = "history";
-    else if (file.includes("_stats")) fileType = "stats";
-    else if (file.includes("_failures")) fileType = "failures";
-    else if (file.includes("_exceptions")) fileType = "exceptions";
-
-    files.push({ name: file, type: fileType, headers, rows });
-  }
-
-  // Check for log file
-  const logPath = path.join(runDir, "script.log");
-  let logContent = null;
-  if (fs.existsSync(logPath)) {
-    logContent = fs.readFileSync(logPath, "utf-8").slice(-50000); // Last 50KB
-  }
-
-  res.json({ files, log: logContent });
 });
 
 // Simple CSV line parser (handles quoted fields with commas)
