@@ -156,11 +156,11 @@ if ($Background) {
         $startTime = Get-Date
         Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Working directory: $(Get-Location)"
         Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Starting Locust..."
-        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Command: locust $locustArgsString"
+        Write-Output "[$(Get-Date -Format 'HH:mm:ss')] Command: python -m locust $locustArgsString"
 
         # Run Locust using Invoke-Expression (args passed as string to avoid array flattening)
         # --logfile captures Locust's own output; stderr goes to err file
-        $cmd = "locust $locustArgsString 2>`"$errFile`""
+        $cmd = "python -m locust $locustArgsString 2>`"$errFile`""
         Invoke-Expression $cmd
 
         $exitCode = $LASTEXITCODE
@@ -232,7 +232,7 @@ Write-Host "Running: locust $($locustArgs -join ' ')"
 Write-Host ""
 
 # Run Locust - --logfile writes Locust's log; 2>&1 shows stderr in terminal too
-& locust @locustArgs 2>&1
+& python -m locust @locustArgs 2>&1
 
 $exitCode = $LASTEXITCODE
 $endTime = Get-Date
