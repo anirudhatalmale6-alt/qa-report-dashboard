@@ -63,6 +63,24 @@ class ErrorPageListener:
             "message_xpath": "//body",
             "description": "500 Internal Server Error"
         },
+        {
+            "name": "VALIDATION_ERROR",
+            "detect_xpath": "//*[contains(@class,'Validation Error') or (contains(text(),'Validation Error') and (self::h1 or self::h2 or self::h3 or self::div or self::td or self::th))]",
+            "message_xpath": "//ul/li | //ol/li | //*[contains(text(),'You must correct')]",
+            "description": "Validation error on form submission"
+        },
+        {
+            "name": "SESSION_TIMEOUT",
+            "detect_xpath": "//*[contains(text(),'session has timed out') or contains(text(),'session has expired') or contains(text(),'Session Timeout')]",
+            "message_xpath": "//*[contains(text(),'session')]",
+            "description": "Session timeout"
+        },
+        {
+            "name": "PAGE_NOT_FOUND",
+            "detect_xpath": "//*[contains(text(),'Page Not Found') or contains(text(),'404')]",
+            "message_xpath": "//body",
+            "description": "404 Page Not Found"
+        },
     ]
 
     def __init__(
@@ -82,6 +100,29 @@ class ErrorPageListener:
         self.on_error = on_error
         self._listening = False
         self._last_check_url = ""
+        self._custom_signatures = []
+
+    def add_error_signature(self, name: str, detect_xpath: str, message_xpath: str = "//body", description: str = ""):
+        """
+        Register a custom error page pattern at runtime.
+        Example:
+            listener.add_error_signature(
+                name="SSN_INVALID",
+                detect_xpath="//*[contains(text(),'SSN is not valid')]",
+                description="Invalid SSN entered"
+            )
+        """
+        self._custom_signatures.append({
+            "name": name,
+            "detect_xpath": detect_xpath,
+            "message_xpath": message_xpath,
+            "description": description or name
+        })
+
+    @property
+    def all_signatures(self):
+        """Combined built-in + custom signatures."""
+        return self.ERROR_SIGNATURES + self._custom_signatures
 
     def start(self):
         """Start auto-listening on every page load."""
@@ -119,7 +160,7 @@ class ErrorPageListener:
         """
         current_url = self.page.url
 
-        for sig in self.ERROR_SIGNATURES:
+        for sig in self.all_signatures:
             try:
                 error_el = self.page.locator(sig["detect_xpath"])
                 if error_el.count() > 0:
