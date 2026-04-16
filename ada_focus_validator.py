@@ -391,6 +391,7 @@ def main():
     parser.add_argument("--file", default="", help="Single HTML file to check (html mode)")
     parser.add_argument("--url", default="", help="Base URL for live testing")
     parser.add_argument("--url-file", default="", help="File with list of URLs to test (one per line)")
+    parser.add_argument("--pages", type=int, default=0, help="Number of pages to test interactively (live mode)")
     parser.add_argument("--output", default="ada_focus_report.csv", help="Output CSV path")
     args = parser.parse_args()
 
@@ -420,65 +421,67 @@ def main():
     elif args.mode == "live":
         from playwright.sync_api import sync_playwright
 
-        urls = []
-        if args.url_file:
-            with open(args.url_file) as f:
-                urls = [line.strip() for line in f if line.strip()]
-        elif args.url:
-            urls = [args.url]
-        else:
-            print("Provide --url or --url-file for live mode")
-            sys.exit(1)
-
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=False, slow_mo=500)
             context = browser.new_context()
             page = context.new_page()
 
-            # Pause for login
-            if urls:
-                base = urls[0].split("/wss/")[0] + "/wss/" if "/wss/" in urls[0] else urls[0]
-                page.goto(base)
-                print("\n" + "=" * 50)
-                print("STEP 1: Log in manually in the browser.")
-                print("STEP 2: After login, press ENTER here to continue...")
-                print("=" * 50)
-                input()
+            # Navigate to base URL for login
+            base_url = args.url or "https://orsuatext7.state.mi.us:1175/wss/"
+            if "/wss/" in base_url:
+                login_url = base_url.split("/wss/")[0] + "/wss/"
+            else:
+                login_url = base_url
+            page.goto(login_url)
 
-            for i, url in enumerate(urls):
-                print(f"\n  Page {i+1}/{len(urls)}: {url}")
+            print("\n" + "=" * 60)
+            print("  ADA FOCUS VALIDATOR - Interactive Mode")
+            print("=" * 60)
+            print("  1. Log in manually in the browser")
+            print("  2. Navigate to the page you want to test")
+            print("  3. Come back here and press ENTER")
+            print("  4. Script will test all fields on that page")
+            print("  5. Then navigate to next page and press ENTER again")
+            print('  6. Type "done" and press ENTER when finished')
+            print("=" * 60)
 
-                # Try direct navigation first
-                try:
-                    page.goto(url, wait_until="domcontentloaded", timeout=15000)
-                    page.wait_for_timeout(2000)
-                except Exception:
-                    pass
+            page_count = 0
+            num_pages = args.pages  # 0 means unlimited
 
-                # Check if we actually landed on the right page or got redirected
+            while True:
+                user_input = input(f"\n>> Navigate to a page, then press ENTER to test (or type 'done' to finish): ").strip()
+
+                if user_input.lower() == "done":
+                    print("Finishing up...")
+                    break
+
+                page_count += 1
                 current_url = page.url
-                if url.split("?")[0] not in current_url:
-                    # Page redirected - ask user to navigate manually
-                    print(f"  >> Could not navigate directly (app redirected to {current_url.split('/')[-1]})")
-                    print(f"  >> Please navigate to this page manually in the browser.")
-                    print(f"  >> When the page is loaded, press ENTER to test it...")
-                    input()
-
-                # Now test whatever page is currently showing
-                current_url = page.url
-                page_name = current_url.split("/")[-1].split("?")[0] or current_url
-                print(f"  Testing page: {page_name}")
+                page_name = current_url.split("/")[-1].split("?")[0] or "unknown"
+                print(f"\n  Page {page_count}: {page_name}")
+                print(f"  URL: {current_url}")
 
                 try:
+                    # Wait a moment for page to be fully stable
+                    page.wait_for_timeout(1000)
                     results = validate_live_page(page, current_url)
                     all_results.extend(results)
+
+                    tested = [r for r in results if r.status in ("PASS", "FAIL", "WARN")]
+                    skipped = [r for r in results if r.status == "SKIP"]
+                    print(f"  Fields tested: {len(tested)}, Skipped: {len(skipped)}")
+
                     for r in results:
                         if r.status in ("PASS", "FAIL", "WARN"):
                             symbol = r.status
                             focus_info = f" | Focus: {r.focus_stayed}" if r.focus_stayed != "SKIP" else ""
-                            print(f"    [{symbol}] {r.field_label or r.field_id}{focus_info} {r.notes}")
+                            print(f"    [{symbol}] {r.field_label or r.field_id}{focus_info} | {r.notes or 'OK'}")
                 except Exception as e:
                     print(f"    ERROR: {e}")
+
+                if num_pages > 0 and page_count >= num_pages:
+                    print(f"\nReached {num_pages} pages. Finishing up...")
+                    break
 
             browser.close()
 
