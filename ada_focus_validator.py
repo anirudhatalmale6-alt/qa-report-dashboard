@@ -231,19 +231,27 @@ def validate_live_page(page, page_url: str) -> list[FieldResult]:
 
             # Click to focus the field
             field_el.click()
+            page.wait_for_timeout(300)
 
             # Clear any existing value
             if field_info["tagName"] == "select":
-                # For selects, set to first (empty/default) option which is usually "-Select-"
-                page.select_option(selector, index=0)
+                # For selects: reset to first option (usually "-Select-")
+                # Use JavaScript to reset without stealing focus
+                page.evaluate(f"""() => {{
+                    const sel = document.getElementById('{field_id}');
+                    if (sel) {{ sel.selectedIndex = 0; sel.dispatchEvent(new Event('change', {{bubbles: true}})); }}
+                }}""")
+                # Re-focus the select (JS above may not keep focus)
+                field_el.focus()
+                page.wait_for_timeout(300)
             else:
                 field_el.fill("")
 
-            # Press Tab to leave the field
+            # Press Tab to leave the field (triggers blur validation)
             page.keyboard.press("Tab")
 
-            # Wait for JS validation to fire (selects may need more time)
-            page.wait_for_timeout(1500)
+            # Wait for JS validation to fire
+            page.wait_for_timeout(2000)
 
             # Check what has focus now
             focused_id = page.evaluate("() => document.activeElement ? document.activeElement.id : ''")
