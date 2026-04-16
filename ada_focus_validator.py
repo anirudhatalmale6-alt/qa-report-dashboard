@@ -435,21 +435,42 @@ def main():
             context = browser.new_context()
             page = context.new_page()
 
-            # Pause for login if needed
+            # Pause for login
             if urls:
                 base = urls[0].split("/wss/")[0] + "/wss/" if "/wss/" in urls[0] else urls[0]
                 page.goto(base)
                 print("\n" + "=" * 50)
-                print("Please log in manually, then press ENTER to continue...")
+                print("STEP 1: Log in manually in the browser.")
+                print("STEP 2: After login, press ENTER here to continue...")
                 print("=" * 50)
                 input()
 
-            for url in urls:
-                print(f"\n  Testing: {url}")
+            for i, url in enumerate(urls):
+                print(f"\n  Page {i+1}/{len(urls)}: {url}")
+
+                # Try direct navigation first
                 try:
-                    page.goto(url, wait_until="networkidle")
-                    page.wait_for_timeout(1000)
-                    results = validate_live_page(page, url)
+                    page.goto(url, wait_until="domcontentloaded", timeout=15000)
+                    page.wait_for_timeout(2000)
+                except Exception:
+                    pass
+
+                # Check if we actually landed on the right page or got redirected
+                current_url = page.url
+                if url.split("?")[0] not in current_url:
+                    # Page redirected - ask user to navigate manually
+                    print(f"  >> Could not navigate directly (app redirected to {current_url.split('/')[-1]})")
+                    print(f"  >> Please navigate to this page manually in the browser.")
+                    print(f"  >> When the page is loaded, press ENTER to test it...")
+                    input()
+
+                # Now test whatever page is currently showing
+                current_url = page.url
+                page_name = current_url.split("/")[-1].split("?")[0] or current_url
+                print(f"  Testing page: {page_name}")
+
+                try:
+                    results = validate_live_page(page, current_url)
                     all_results.extend(results)
                     for r in results:
                         if r.status in ("PASS", "FAIL", "WARN"):
