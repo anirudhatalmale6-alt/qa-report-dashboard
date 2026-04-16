@@ -231,18 +231,16 @@ def validate_live_page(page, page_url: str) -> list[FieldResult]:
 
             # Click to focus the field
             field_el.click()
-            page.wait_for_timeout(300)
+            page.wait_for_timeout(500)
 
             # Clear any existing value
             if field_info["tagName"] == "select":
-                # For selects: reset to first option (usually "-Select-")
-                # Use JavaScript to reset without stealing focus
-                page.evaluate(f"""() => {{
-                    const sel = document.getElementById('{field_id}');
-                    if (sel) {{ sel.selectedIndex = 0; sel.dispatchEvent(new Event('change', {{bubbles: true}})); }}
-                }}""")
-                # Re-focus the select (JS above may not keep focus)
-                field_el.focus()
+                # For selects: use keyboard to reset to first option ("-Select-")
+                # Press Home to go to first option, or select empty value
+                field_el.select_option(value="")
+                page.wait_for_timeout(300)
+                # Re-click to ensure focus is on the select
+                field_el.click()
                 page.wait_for_timeout(300)
             else:
                 field_el.fill("")
@@ -252,6 +250,37 @@ def validate_live_page(page, page_url: str) -> list[FieldResult]:
 
             # Wait for JS validation to fire
             page.wait_for_timeout(2000)
+
+            # If no error found after first check, try clicking Save button
+            # (some apps only validate on submit, not on blur)
+            quick_check = page.evaluate(f"""() => {{
+                const errorEl = document.getElementById('error-{field_id}');
+                if (errorEl) {{
+                    const style = window.getComputedStyle(errorEl);
+                    return style.display !== 'none' && style.visibility !== 'hidden' && errorEl.offsetParent !== null;
+                }}
+                const field = document.getElementById('{field_id}');
+                if (field) {{
+                    const describedBy = field.getAttribute('aria-describedby');
+                    if (describedBy) {{
+                        const el = document.getElementById(describedBy);
+                        if (el) {{
+                            const st = window.getComputedStyle(el);
+                            return st.display !== 'none' && st.visibility !== 'hidden' && el.offsetParent !== null;
+                        }}
+                    }}
+                }}
+                return false;
+            }}""")
+
+            # If still no error visible, the error might need the field to lose focus differently
+            if not quick_check:
+                # Try clicking somewhere neutral then check again
+                try:
+                    page.locator("body").click(position={"x": 1, "y": 1})
+                    page.wait_for_timeout(1000)
+                except Exception:
+                    pass
 
             # Check what has focus now
             focused_id = page.evaluate("() => document.activeElement ? document.activeElement.id : ''")
