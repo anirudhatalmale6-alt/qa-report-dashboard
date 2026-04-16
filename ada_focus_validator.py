@@ -240,19 +240,27 @@ def validate_live_page(page, page_url: str) -> list[FieldResult]:
             notes="Optional field",
         ))
 
-    # Clear all required fields
-    for field_info in required_fields:
-        try:
-            selector = f"#{field_info['id']}"
-            field_el = page.locator(selector)
-            if field_info["tagName"] == "select":
-                field_el.select_option(value="")
-            else:
-                field_el.click()
-                field_el.fill("")
-            page.wait_for_timeout(200)
-        except Exception:
-            pass
+    # Clear all required fields using JavaScript (more reliable than Playwright APIs)
+    page.evaluate("""() => {
+        const fields = document.querySelectorAll(
+            'input[type="text"], input[type="password"], input[type="email"], input[type="tel"], select, textarea'
+        );
+        fields.forEach(f => {
+            if (f.type === 'hidden') return;
+            const style = window.getComputedStyle(f);
+            if (style.display === 'none' || style.visibility === 'hidden') return;
+
+            if (f.tagName === 'SELECT') {
+                f.selectedIndex = 0;  // Reset to first option ("-Select-")
+                f.dispatchEvent(new Event('change', {bubbles: true}));
+            } else {
+                f.value = '';
+                f.dispatchEvent(new Event('input', {bubbles: true}));
+                f.dispatchEvent(new Event('change', {bubbles: true}));
+            }
+        });
+    }""")
+    page.wait_for_timeout(500)
 
     # Step 2: Click Save/Submit button to trigger all validation errors
     save_clicked = False
