@@ -46,6 +46,12 @@ class ErrorPageListener:
     # Error page signatures - add more patterns as you discover them
     ERROR_SIGNATURES = [
         {
+            "name": "ERROR_PAGE",
+            "detect_xpath": "//title[contains(text(),'Error Page')] | //form[@name='errorPageForm']",
+            "message_xpath": "//*[contains(@class,'headerLevel2')] | //*[contains(text(),'apologies') or contains(text(),'sorry')]",
+            "description": "Application Error Page (title/form based)"
+        },
+        {
             "name": "403_SESSION_EXPIRED",
             "detect_xpath": "//*[contains(text(),'403 Page') or contains(text(),'OSI 1416')]",
             "message_xpath": "//font[@color='red' or @color='Red']",
@@ -53,9 +59,15 @@ class ErrorPageListener:
         },
         {
             "name": "APOLOGIES_ERROR",
-            "detect_xpath": "//*[contains(text(),'Apologies') or contains(text(),'apologies')]",
-            "message_xpath": "//*[contains(text(),'Apologies') or contains(text(),'apologies')]",
+            "detect_xpath": "//*[contains(@class,'headerLevel2') and (contains(text(),'apologies') or contains(text(),'Apologies'))] | //*[contains(text(),'Our apologies')]",
+            "message_xpath": "//*[contains(text(),'sorry') or contains(text(),'apologies') or contains(text(),'Apologies')]",
             "description": "Application apologies/error page"
+        },
+        {
+            "name": "DUPLICATE_SUBMISSION",
+            "detect_xpath": "//*[contains(text(),'DuplicateSubmission') or contains(text(),'Duplicate Submission') or contains(text(),'duplicate submission')]",
+            "message_xpath": "//body",
+            "description": "Struts duplicate form submission error"
         },
         {
             "name": "SERVER_ERROR",
