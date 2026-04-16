@@ -234,7 +234,7 @@ def validate_live_page(page, page_url: str) -> list[FieldResult]:
 
             # Clear any existing value
             if field_info["tagName"] == "select":
-                # For selects, set to first (empty/default) option
+                # For selects, set to first (empty/default) option which is usually "-Select-"
                 page.select_option(selector, index=0)
             else:
                 field_el.fill("")
@@ -242,20 +242,43 @@ def validate_live_page(page, page_url: str) -> list[FieldResult]:
             # Press Tab to leave the field
             page.keyboard.press("Tab")
 
-            # Small wait for any JS validation to fire
-            page.wait_for_timeout(500)
+            # Wait for JS validation to fire (selects may need more time)
+            page.wait_for_timeout(1500)
 
             # Check what has focus now
             focused_id = page.evaluate("() => document.activeElement ? document.activeElement.id : ''")
             focus_stayed = focused_id == field_id
 
             # Check if error message appeared
+            # Search multiple ways: error-{id}, aria-describedby target, nearby .error-message
             error_visible = page.evaluate(f"""() => {{
-                const errorEl = document.getElementById('error-{field_id}');
+                // Method 1: Look for error-{field_id} by ID
+                let errorEl = document.getElementById('error-{field_id}');
+
+                // Method 2: Check aria-describedby target on the field
+                if (!errorEl) {{
+                    const field = document.getElementById('{field_id}');
+                    if (field) {{
+                        const describedBy = field.getAttribute('aria-describedby');
+                        if (describedBy) {{
+                            errorEl = document.getElementById(describedBy);
+                        }}
+                    }}
+                }}
+
+                // Method 3: Look for .error-message sibling/nearby
+                if (!errorEl) {{
+                    const field = document.getElementById('{field_id}');
+                    if (field && field.parentElement) {{
+                        errorEl = field.parentElement.querySelector('.error-message');
+                    }}
+                }}
+
                 if (!errorEl) return {{ visible: false, text: '', hasRoleAlert: false }};
                 const style = window.getComputedStyle(errorEl);
+                const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && errorEl.offsetParent !== null;
                 return {{
-                    visible: style.display !== 'none' && style.visibility !== 'hidden',
+                    visible: isVisible,
                     text: errorEl.textContent.trim().substring(0, 200),
                     hasRoleAlert: errorEl.getAttribute('role') === 'alert'
                 }};
