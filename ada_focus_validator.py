@@ -101,31 +101,37 @@ def validate_html_file(html_path: str) -> list[FieldResult]:
         has_aria_describedby = bool(aria_describedby)
         describedby_target = ""
         error_message = ""
-        error_has_role_alert = False
+        error_role = ""
+        error_aria_live = ""
+        error_has_correct_role = False
 
         if aria_describedby:
             target_el = tree.xpath(f'//*[@id="{aria_describedby}"]')
             if target_el:
                 describedby_target = aria_describedby
                 error_message = target_el[0].text_content().strip()[:200]
-                error_has_role_alert = target_el[0].get("role", "") == "alert"
+                error_role = target_el[0].get("role", "")
+                error_aria_live = target_el[0].get("aria-live", "")
+                error_has_correct_role = error_role == "status"
 
         # Check aria-invalid
         has_aria_invalid = field.get("aria-invalid", "").lower() == "true"
 
         # Check for error span near the field
         has_error_span = False
-        # Look for error-{id} pattern
         if field_id:
             error_els = tree.xpath(f'//*[@id="error-{field_id}"]')
             if error_els:
                 has_error_span = True
                 if not error_message:
                     error_message = error_els[0].text_content().strip()[:200]
-                if not error_has_role_alert:
-                    error_has_role_alert = error_els[0].get("role", "") == "alert"
+                if not error_role:
+                    error_role = error_els[0].get("role", "")
+                    error_aria_live = error_els[0].get("aria-live", "")
+                    error_has_correct_role = error_role == "status"
 
-        # Determine status
+        # Determine status based on expected ADA behavior:
+        # Error divs should have role="status" aria-live="off" (NOT role="alert" aria-live="assertive")
         notes = []
         status = "PASS"
 
@@ -133,9 +139,21 @@ def validate_html_file(html_path: str) -> list[FieldResult]:
             if not has_aria_describedby:
                 notes.append("Missing aria-describedby for required field")
                 status = "FAIL"
-            if has_error_span and not error_has_role_alert:
-                notes.append("Error span missing role='alert' (screen reader won't announce)")
-                status = "FAIL" if status != "FAIL" else status
+            if has_error_span:
+                if error_role == "alert":
+                    notes.append(f"Error has role='alert' (should be 'status' after ADA fix)")
+                    status = "FAIL"
+                elif error_role != "status":
+                    notes.append(f"Error has role='{error_role}' (expected 'status')")
+                    status = "WARN"
+                if error_aria_live == "assertive":
+                    notes.append(f"Error has aria-live='assertive' (should be 'off' after ADA fix)")
+                    status = "FAIL"
+                elif error_aria_live != "off":
+                    notes.append(f"Error has aria-live='{error_aria_live}' (expected 'off')")
+                    status = "WARN" if status == "PASS" else status
+                if not notes:
+                    notes.append(f"OK: role='{error_role}', aria-live='{error_aria_live}'")
         else:
             status = "SKIP"
             notes.append("Optional field")
@@ -151,7 +169,7 @@ def validate_html_file(html_path: str) -> list[FieldResult]:
             has_aria_describedby=has_aria_describedby,
             aria_describedby_target=describedby_target,
             has_aria_invalid=has_aria_invalid,
-            error_has_role_alert=error_has_role_alert,
+            error_has_role_alert=error_has_correct_role,
             focus_stayed="N/A",
             error_message=error_message,
             status=status,
@@ -198,161 +216,167 @@ def validate_live_page(page, page_url: str) -> list[FieldResult]:
         });
     }""")
 
-    for field_info in fields_info:
-        field_id = field_info["id"]
-        if not field_id:
-            continue
+    # Step 1: Clear all required fields to trigger validation
+    required_fields = [f for f in fields_info if f["isRequired"] and f["id"]]
+    optional_fields = [f for f in fields_info if not f["isRequired"] and f["id"]]
 
-        is_required = field_info["isRequired"]
-        if not is_required:
-            results.append(FieldResult(
-                page=page_name,
-                field_id=field_id,
-                field_name=field_info["name"],
-                field_label=field_info["label"],
-                field_type=field_info["type"],
-                is_required=False,
-                has_error_span=False,
-                has_aria_describedby=bool(field_info["ariaDescribedby"]),
-                aria_describedby_target=field_info["ariaDescribedby"],
-                has_aria_invalid=False,
-                error_has_role_alert=False,
-                focus_stayed="SKIP",
-                error_message="",
-                status="SKIP",
-                notes="Optional field",
-            ))
-            continue
+    # Add optional fields to results as SKIP
+    for field_info in optional_fields:
+        results.append(FieldResult(
+            page=page_name,
+            field_id=field_info["id"],
+            field_name=field_info["name"],
+            field_label=field_info["label"],
+            field_type=field_info["type"],
+            is_required=False,
+            has_error_span=False,
+            has_aria_describedby=bool(field_info["ariaDescribedby"]),
+            aria_describedby_target=field_info["ariaDescribedby"],
+            has_aria_invalid=False,
+            error_has_role_alert=False,
+            focus_stayed="SKIP",
+            error_message="",
+            status="SKIP",
+            notes="Optional field",
+        ))
 
-        # Clear the field and test tab behavior
+    # Clear all required fields
+    for field_info in required_fields:
         try:
-            selector = f"#{field_id}"
+            selector = f"#{field_info['id']}"
             field_el = page.locator(selector)
-
-            # Click to focus the field
-            field_el.click()
-            page.wait_for_timeout(500)
-
-            # Clear any existing value
             if field_info["tagName"] == "select":
-                # For selects: use keyboard to reset to first option ("-Select-")
-                # Press Home to go to first option, or select empty value
                 field_el.select_option(value="")
-                page.wait_for_timeout(300)
-                # Re-click to ensure focus is on the select
-                field_el.click()
-                page.wait_for_timeout(300)
             else:
+                field_el.click()
                 field_el.fill("")
+            page.wait_for_timeout(200)
+        except Exception:
+            pass
 
-            # Press Tab to leave the field (triggers blur validation)
-            page.keyboard.press("Tab")
+    # Step 2: Click Save/Submit button to trigger all validation errors
+    save_clicked = False
+    for btn_text in ["Save", "Submit", "Continue", "Next"]:
+        try:
+            btn = page.get_by_role("button", name=btn_text)
+            if btn.count() > 0:
+                btn.first.click()
+                save_clicked = True
+                logger.info(f"Clicked '{btn_text}' button")
+                break
+        except Exception:
+            continue
 
-            # Wait for JS validation to fire
-            page.wait_for_timeout(2000)
+    if not save_clicked:
+        # Try input[type=submit]
+        try:
+            submit = page.locator("input[type='submit']")
+            if submit.count() > 0:
+                submit.first.click()
+                save_clicked = True
+        except Exception:
+            pass
 
-            # If no error found after first check, try clicking Save button
-            # (some apps only validate on submit, not on blur)
-            quick_check = page.evaluate(f"""() => {{
-                const errorEl = document.getElementById('error-{field_id}');
+    if not save_clicked:
+        logger.warning("Could not find Save/Submit button")
+
+    # Wait for validation to complete
+    page.wait_for_timeout(3000)
+
+    # Step 3: Check where focus landed after Save (should be first errored field)
+    first_focused_id = page.evaluate("() => document.activeElement ? document.activeElement.id : ''")
+
+    # Step 4: Check each required field for proper error handling
+    first_errored_field = None
+    for field_info in required_fields:
+        field_id = field_info["id"]
+
+        try:
+            # Check error element and its attributes
+            field_check = page.evaluate(f"""() => {{
+                const field = document.getElementById('{field_id}');
+                if (!field) return null;
+
+                // Find error element via multiple methods
+                let errorEl = document.getElementById('error-{field_id}');
+                if (!errorEl) {{
+                    const describedBy = field.getAttribute('aria-describedby');
+                    if (describedBy) errorEl = document.getElementById(describedBy);
+                }}
+                if (!errorEl && field.parentElement) {{
+                    errorEl = field.parentElement.querySelector('.error-message');
+                }}
+
+                let errorInfo = {{ visible: false, text: '', role: '', ariaLive: '', id: '' }};
                 if (errorEl) {{
                     const style = window.getComputedStyle(errorEl);
-                    return style.display !== 'none' && style.visibility !== 'hidden' && errorEl.offsetParent !== null;
-                }}
-                const field = document.getElementById('{field_id}');
-                if (field) {{
-                    const describedBy = field.getAttribute('aria-describedby');
-                    if (describedBy) {{
-                        const el = document.getElementById(describedBy);
-                        if (el) {{
-                            const st = window.getComputedStyle(el);
-                            return st.display !== 'none' && st.visibility !== 'hidden' && el.offsetParent !== null;
-                        }}
-                    }}
-                }}
-                return false;
-            }}""")
-
-            # If still no error visible, the error might need the field to lose focus differently
-            if not quick_check:
-                # Try clicking somewhere neutral then check again
-                try:
-                    page.locator("body").click(position={"x": 1, "y": 1})
-                    page.wait_for_timeout(1000)
-                except Exception:
-                    pass
-
-            # Check what has focus now
-            focused_id = page.evaluate("() => document.activeElement ? document.activeElement.id : ''")
-            focus_stayed = focused_id == field_id
-
-            # Check if error message appeared
-            # Search multiple ways: error-{id}, aria-describedby target, nearby .error-message
-            error_visible = page.evaluate(f"""() => {{
-                // Method 1: Look for error-{field_id} by ID
-                let errorEl = document.getElementById('error-{field_id}');
-
-                // Method 2: Check aria-describedby target on the field
-                if (!errorEl) {{
-                    const field = document.getElementById('{field_id}');
-                    if (field) {{
-                        const describedBy = field.getAttribute('aria-describedby');
-                        if (describedBy) {{
-                            errorEl = document.getElementById(describedBy);
-                        }}
-                    }}
+                    errorInfo = {{
+                        visible: style.display !== 'none' && style.visibility !== 'hidden' && errorEl.offsetParent !== null,
+                        text: errorEl.textContent.trim().substring(0, 200),
+                        role: errorEl.getAttribute('role') || '',
+                        ariaLive: errorEl.getAttribute('aria-live') || '',
+                        id: errorEl.id || ''
+                    }};
                 }}
 
-                // Method 3: Look for .error-message sibling/nearby
-                if (!errorEl) {{
-                    const field = document.getElementById('{field_id}');
-                    if (field && field.parentElement) {{
-                        errorEl = field.parentElement.querySelector('.error-message');
-                    }}
-                }}
-
-                if (!errorEl) return {{ visible: false, text: '', hasRoleAlert: false }};
-                const style = window.getComputedStyle(errorEl);
-                const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && errorEl.offsetParent !== null;
                 return {{
-                    visible: isVisible,
-                    text: errorEl.textContent.trim().substring(0, 200),
-                    hasRoleAlert: errorEl.getAttribute('role') === 'alert'
+                    ariaDescribedby: field.getAttribute('aria-describedby') || '',
+                    ariaInvalid: field.getAttribute('aria-invalid') || '',
+                    hasErrorClass: field.classList.contains('error-field'),
+                    error: errorInfo
                 }};
             }}""")
 
-            # Check aria-invalid state after tab
-            aria_state = page.evaluate(f"""() => {{
-                const el = document.getElementById('{field_id}');
-                return {{
-                    ariaInvalid: el ? el.getAttribute('aria-invalid') : '',
-                    ariaDescribedby: el ? el.getAttribute('aria-describedby') || '' : ''
-                }};
-            }}""")
+            if not field_check:
+                continue
 
-            has_error = error_visible["visible"]
-            error_msg = error_visible["text"]
-            has_role_alert = error_visible["hasRoleAlert"]
+            has_error = field_check["error"]["visible"]
+            error_msg = field_check["error"]["text"]
+            error_role = field_check["error"]["role"]
+            error_aria_live = field_check["error"]["ariaLive"]
 
-            # Determine status
+            if has_error and first_errored_field is None:
+                first_errored_field = field_id
+
+            # Determine status based on NEW expected behavior
             notes = []
             status = "PASS"
 
             if has_error:
-                if not focus_stayed:
-                    notes.append(f"FOCUS MOVED to '{focused_id}' instead of staying on '{field_id}'")
+                # Check 1: role should be "status" (not "alert")
+                if error_role == "alert":
+                    notes.append(f"Error has role='alert' (should be 'status' after fix)")
                     status = "FAIL"
-                if not has_role_alert:
-                    notes.append("Error message missing role='alert'")
+                elif error_role != "status":
+                    notes.append(f"Error has role='{error_role}' (expected 'status')")
+                    status = "WARN"
+
+                # Check 2: aria-live should be "off" (not "assertive")
+                if error_aria_live == "assertive":
+                    notes.append(f"Error has aria-live='assertive' (should be 'off' after fix)")
                     status = "FAIL"
-                if aria_state["ariaInvalid"] != "true":
-                    notes.append("aria-invalid not set to 'true' after validation error")
+                elif error_aria_live != "off":
+                    notes.append(f"Error has aria-live='{error_aria_live}' (expected 'off')")
                     status = "WARN" if status == "PASS" else status
-                if not aria_state["ariaDescribedby"]:
-                    notes.append("Missing aria-describedby")
+
+                # Check 3: Field must have aria-describedby
+                if not field_check["ariaDescribedby"]:
+                    notes.append("Missing aria-describedby on field")
                     status = "FAIL"
+
+                # Check 4: Focus on first error after Save
+                if first_errored_field == field_id:
+                    if first_focused_id == field_id:
+                        notes.append("Focus correctly on first errored field after Save")
+                    else:
+                        notes.append(f"After Save, focus on '{first_focused_id}' instead of first error '{field_id}'")
+                        status = "FAIL"
+
+                if not notes:
+                    notes.append(f"role='{error_role}', aria-live='{error_aria_live}', aria-describedby OK")
+
             else:
-                notes.append("No error message appeared after Tab on empty required field")
+                notes.append("No error message appeared after Save for required empty field")
                 status = "WARN"
 
             results.append(FieldResult(
@@ -363,11 +387,11 @@ def validate_live_page(page, page_url: str) -> list[FieldResult]:
                 field_type=field_info["type"],
                 is_required=True,
                 has_error_span=has_error,
-                has_aria_describedby=bool(aria_state["ariaDescribedby"]),
-                aria_describedby_target=aria_state["ariaDescribedby"],
-                has_aria_invalid=aria_state["ariaInvalid"] == "true",
-                error_has_role_alert=has_role_alert,
-                focus_stayed="PASS" if focus_stayed else "FAIL",
+                has_aria_describedby=bool(field_check["ariaDescribedby"]),
+                aria_describedby_target=field_check["ariaDescribedby"],
+                has_aria_invalid=field_check["ariaInvalid"] == "true",
+                error_has_role_alert=error_role == "status",
+                focus_stayed="PASS" if (first_errored_field != field_id or first_focused_id == field_id) else "FAIL",
                 error_message=error_msg,
                 status=status,
                 notes="; ".join(notes),
