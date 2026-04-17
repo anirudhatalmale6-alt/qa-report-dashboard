@@ -65,7 +65,7 @@
     padding: 16px 20px 8px;
   }
 
-  /* Level 1 - Systems (ES, CS, SS) */
+  /* Level 1 - Systems (ESS, CS, SS) */
   .nav-l1 {
     display: flex;
     align-items: center;
@@ -369,16 +369,6 @@
   .results-filter:focus { border-color: #58a6ff; }
   .results-filter option { background: #0d1117; }
 
-  .results-tabs {
-    display: flex; gap: 4px; padding: 0 20px; border-bottom: 1px solid #21262d;
-  }
-  .results-tab {
-    padding: 10px 16px; font-size: 13px; color: #8b949e; cursor: pointer;
-    border-bottom: 2px solid transparent; transition: all 0.15s ease;
-  }
-  .results-tab:hover { color: #c9d1d9; }
-  .results-tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
-
   .results-count {
     font-size: 12px; color: #8b949e; padding: 8px 20px; border-bottom: 1px solid #21262d;
   }
@@ -402,11 +392,41 @@
 
   .status-passed { color: #3fb950; font-weight: 600; }
   .status-failed { color: #f85149; font-weight: 600; }
+  .status-didnotrun { color: #484f58; font-weight: 600; }
   .status-empty { color: #484f58; }
 
-  /* Locust status colors */
-  .status-ok { color: #3fb950; font-weight: 600; }
-  .status-error { color: #f85149; font-weight: 600; }
+  /* Report Modal (Allure iframe popup) */
+  .report-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;
+  }
+  .report-overlay.active { display: flex; }
+  .report-modal {
+    background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+    width: 95vw; height: 92vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .report-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; border-bottom: 1px solid #21262d; flex-shrink: 0;
+  }
+  .report-modal-header h3 { font-size: 16px; color: #f0f6fc; }
+  .report-modal-header .header-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-newtab {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; background: transparent;
+    border: 1px solid #30363d; border-radius: 6px;
+    color: #8b949e; font-size: 12px; cursor: pointer; text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .btn-newtab:hover { background: #21262d; color: #f0f6fc; }
+  .report-close {
+    background: none; border: none; color: #8b949e; font-size: 22px;
+    cursor: pointer; padding: 4px 8px; border-radius: 4px;
+  }
+  .report-close:hover { background: #21262d; color: #f0f6fc; }
+  .report-iframe {
+    flex: 1; width: 100%; border: none; background: #fff;
+  }
 
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -421,7 +441,7 @@
     <h1><span class="icon">QA</span> Automation Reports</h1>
   </div>
 
-  <div class="sidebar-label">Applications</div>
+  <div class="sidebar-label">Functional Test</div>
 
   <!-- ESS -->
   <div class="nav-l1" onclick="toggle(this,'sub-ess')">ESS <span class="chevron">&#9654;</span></div>
@@ -447,12 +467,24 @@
     <div class="nav-l2" onclick="loadRuns('MiAccount','Maintenance',this)"><span class="dot"></span>Maintenance</div>
   </div>
 
-  <div class="sidebar-label">Load Testing</div>
+  <div class="sidebar-label">Performance Test</div>
 
-  <!-- Locust -->
-  <div class="nav-l1" onclick="toggle(this,'sub-locust');loadLocustScripts()">Locust <span class="chevron">&#9654;</span></div>
-  <div id="sub-locust" class="sub-l1">
-    <div id="locust-scripts-list" style="padding:8px 20px 8px 36px;color:#484f58;font-size:12px;">Loading scripts...</div>
+  <!-- App Migration -->
+  <div class="nav-l1" onclick="toggle(this,'sub-perf-appmig')">App Migration <span class="chevron">&#9654;</span></div>
+  <div id="sub-perf-appmig" class="sub-l1">
+    <div id="perf-appmig-scripts" style="padding:8px 20px 8px 36px;color:#484f58;font-size:12px;">No scripts yet</div>
+  </div>
+
+  <!-- ADA -->
+  <div class="nav-l1" onclick="toggle(this,'sub-perf-ada')">ADA <span class="chevron">&#9654;</span></div>
+  <div id="sub-perf-ada" class="sub-l1">
+    <div id="perf-ada-scripts" style="padding:8px 20px 8px 36px;color:#484f58;font-size:12px;">No scripts yet</div>
+  </div>
+
+  <!-- Maintenance -->
+  <div class="nav-l1" onclick="toggle(this,'sub-perf-maint')">Maintenance <span class="chevron">&#9654;</span></div>
+  <div id="sub-perf-maint" class="sub-l1">
+    <div id="perf-maint-scripts" style="padding:8px 20px 8px 36px;color:#484f58;font-size:12px;">No scripts yet</div>
   </div>
 </nav>
 
@@ -478,13 +510,13 @@
       <h3 id="resultsTitle">Test Results</h3>
       <button class="results-close" onclick="closeResults()">&times;</button>
     </div>
-    <div class="results-tabs" id="resultsTabs"></div>
     <div class="results-toolbar">
-      <input type="text" class="results-search" id="resultsSearch" placeholder="Search by MemberID, DataReference, TestMethod, status..." oninput="filterResults()">
+      <input type="text" class="results-search" id="resultsSearch" placeholder="Search by TestName, Status, Browser..." oninput="filterResults()">
       <select class="results-filter" id="statusFilter" onchange="filterResults()">
         <option value="">All Statuses</option>
-        <option value="Passed">Passed</option>
-        <option value="Failed">Failed</option>
+        <option value="Pass">Pass</option>
+        <option value="Fail">Fail</option>
+        <option value="Did not run">Did not run</option>
       </select>
     </div>
     <div class="results-count" id="resultsCount"></div>
@@ -497,14 +529,32 @@
   </div>
 </div>
 
+<!-- Allure Report Modal (iframe popup) -->
+<div class="report-overlay" id="reportOverlay" onclick="if(event.target===this)closeReport()">
+  <div class="report-modal">
+    <div class="report-modal-header">
+      <h3 id="reportTitle">Allure Report</h3>
+      <div class="header-actions">
+        <a class="btn-newtab" id="reportNewTab" href="#" target="_blank">&#8599; Open in New Tab</a>
+        <button class="report-close" onclick="closeReport()">&times;</button>
+      </div>
+    </div>
+    <iframe class="report-iframe" id="reportIframe" src="about:blank"></iframe>
+  </div>
+</div>
+
 <script>
 var currentResultsData = null;
-var currentSheetIndex = 0;
 
 function toggle(item, subId) {
   var sub = document.getElementById(subId);
   sub.classList.toggle('open');
   item.classList.toggle('expanded');
+
+  // Auto-load performance test scripts when expanding
+  if (subId === 'sub-perf-appmig' && sub.classList.contains('open')) loadPerfScripts('App_Migration', 'perf-appmig-scripts');
+  if (subId === 'sub-perf-ada' && sub.classList.contains('open')) loadPerfScripts('ADA', 'perf-ada-scripts');
+  if (subId === 'sub-perf-maint' && sub.classList.contains('open')) loadPerfScripts('Maintenance', 'perf-maint-scripts');
 }
 
 function setActive(el) {
@@ -513,6 +563,10 @@ function setActive(el) {
   });
   if (el) el.classList.add('active');
 }
+
+// ===========================
+// ALLURE REPORT (Functional Test)
+// ===========================
 
 async function loadRuns(app, project, el) {
   setActive(el);
@@ -572,7 +626,7 @@ async function loadRuns(app, project, el) {
       html += '<div class="run-stat t"><div class="num">' + run.total + '</div><div class="lbl">Total</div></div>';
       html += '</div>';
       html += '<div class="run-duration">' + duration + '</div>';
-      html += '<div class="run-action"><button class="btn-results" onclick="openResults(\'' + app + '\',\'' + project + '\',\'' + run.id + '\')">&#9776; Results</button><button class="btn-results" onclick="downloadCSV(\'' + app + '\',\'' + project + '\',\'' + run.id + '\')">&#11015; CSV</button><a class="btn-open" href="' + run.reportUrl + '" target="_blank">&#8599; Open</a></div>';
+      html += '<div class="run-action"><button class="btn-results" onclick="openResults(\'' + app + '\',\'' + project + '\',\'' + run.id + '\')">&#9776; Results</button><button class="btn-results" onclick="downloadCSV(\'' + app + '\',\'' + project + '\',\'' + run.id + '\')">&#11015; CSV</button><button class="btn-open" onclick="openReport(\'' + encodeURIComponent(run.reportUrl) + '\',\'' + app + ' / ' + project.replace('_',' ') + ' - ' + run.id + '\')">&#8599; Open</button></div>';
       html += '</div>';
     });
 
@@ -582,13 +636,33 @@ async function loadRuns(app, project, el) {
   }
 }
 
+// ===========================
+// ALLURE REPORT POPUP (iframe)
+// ===========================
+
+function openReport(encodedUrl, title) {
+  var url = decodeURIComponent(encodedUrl);
+  document.getElementById('reportTitle').textContent = title;
+  document.getElementById('reportNewTab').href = url;
+  document.getElementById('reportIframe').src = url;
+  document.getElementById('reportOverlay').classList.add('active');
+}
+
+function closeReport() {
+  document.getElementById('reportOverlay').classList.remove('active');
+  document.getElementById('reportIframe').src = 'about:blank';
+}
+
+// ===========================
+// RESULTS POPUP (TestPlan only)
+// ===========================
+
 async function openResults(app, project, runId) {
   var overlay = document.getElementById('resultsOverlay');
   overlay.classList.add('active');
   document.getElementById('resultsTitle').textContent = app + ' / ' + project.replace('_',' ') + ' - ' + runId;
   document.getElementById('resultsHead').innerHTML = '';
   document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#8b949e;text-align:center;">Loading results...</td></tr>';
-  document.getElementById('resultsTabs').innerHTML = '';
   document.getElementById('resultsCount').textContent = '';
   document.getElementById('resultsSearch').value = '';
   document.getElementById('statusFilter').value = '';
@@ -596,67 +670,68 @@ async function openResults(app, project, runId) {
   try {
     var res = await fetch('/api/' + app + '/' + project + '/' + runId + '/results');
     var data = await res.json();
-    currentResultsData = data;
-    currentSheetIndex = 0;
 
     if (!data.sheets || data.sheets.length === 0) {
       document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#8b949e;text-align:center;">No CSV results found for this run.<br>Results are available after publishing with the updated allure-publish.ps1</td></tr>';
       return;
     }
 
-    // Build tabs (skip TestPlan, show data sheets first)
-    var tabsHtml = '';
-    data.sheets.forEach(function(sheet, i) {
-      var cls = i === 0 ? ' active' : '';
-      tabsHtml += '<div class="results-tab' + cls + '" onclick="switchSheet(' + i + ',this)">' + sheet.name + ' (' + sheet.rows.length + ')</div>';
-    });
-    document.getElementById('resultsTabs').innerHTML = tabsHtml;
+    // Find the TestPlan sheet
+    var testPlanSheet = null;
+    for (var i = 0; i < data.sheets.length; i++) {
+      if (data.sheets[i].name === 'TestPlan') {
+        testPlanSheet = data.sheets[i];
+        break;
+      }
+    }
 
-    renderSheet(0);
+    // Fallback to first sheet if TestPlan not found
+    if (!testPlanSheet) testPlanSheet = data.sheets[0];
+
+    // Map the rows to show only required columns with mapped status
+    var displayHeaders = ['TestName', 'Browser', 'TestType', 'Status', 'Timestamp'];
+    var mappedRows = testPlanSheet.rows.map(function(row) {
+      var rawStatus = (row['Status'] || row['FinalStatus'] || '').trim();
+      var displayStatus;
+      if (rawStatus.toLowerCase() === 'passed' || rawStatus.toLowerCase() === 'pass') displayStatus = 'Pass';
+      else if (rawStatus.toLowerCase() === 'failed' || rawStatus.toLowerCase() === 'fail') displayStatus = 'Fail';
+      else displayStatus = 'Did not run';
+
+      return {
+        'TestName': row['TestName'] || '',
+        'Browser': row['Browser'] || '',
+        'TestType': row['TestType'] || '',
+        'Status': displayStatus,
+        'Timestamp': row['Timestamp'] || row['TimeStamp'] || ''
+      };
+    });
+
+    currentResultsData = { headers: displayHeaders, rows: mappedRows };
+
+    renderResultsTable(mappedRows, displayHeaders);
   } catch(err) {
     document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#f85149;text-align:center;">Error: ' + err.message + '</td></tr>';
   }
 }
 
-function switchSheet(index, tabEl) {
-  currentSheetIndex = index;
-  document.querySelectorAll('.results-tab').forEach(function(t) { t.classList.remove('active'); });
-  if (tabEl) tabEl.classList.add('active');
-  document.getElementById('resultsSearch').value = '';
-  document.getElementById('statusFilter').value = '';
-  renderSheet(index);
-}
-
-function renderSheet(index) {
-  var sheet = currentResultsData.sheets[index];
-  if (!sheet) return;
-
-  // Priority columns to show first
-  var priority = ['DataReference','MemberID','TestMethod','TestName','FinalStatus','StackTrace','ErrorMessage','MemberStatus','Scenario','Registered','Timestamp'];
-  var headers = [];
-  priority.forEach(function(h) { if (sheet.headers.indexOf(h) !== -1) headers.push(h); });
-  sheet.headers.forEach(function(h) { if (headers.indexOf(h) === -1) headers.push(h); });
-
+function renderResultsTable(rows, headers) {
   // Build header
   var headHtml = '<tr>';
   headers.forEach(function(h) { headHtml += '<th onclick="sortResults(\'' + h + '\')">' + h + '</th>'; });
   headHtml += '</tr>';
   document.getElementById('resultsHead').innerHTML = headHtml;
 
-  renderRows(sheet.rows, headers);
-}
-
-function renderRows(rows, headers) {
+  // Build body
   var bodyHtml = '';
   rows.forEach(function(row) {
     bodyHtml += '<tr>';
     headers.forEach(function(h) {
       var val = row[h] || '';
       var cls = '';
-      if (h === 'FinalStatus') {
-        if (val === 'Passed') cls = ' class="status-passed"';
-        else if (val === 'Failed') cls = ' class="status-failed"';
-        else if (!val) cls = ' class="status-empty"';
+      if (h === 'Status') {
+        if (val === 'Pass') cls = ' class="status-passed"';
+        else if (val === 'Fail') cls = ' class="status-failed"';
+        else cls = ' class="status-didnotrun"';
       }
       bodyHtml += '<td' + cls + ' title="' + String(val).replace(/"/g, '&quot;') + '">' + val + '</td>';
     });
@@ -668,20 +743,17 @@ function renderRows(rows, headers) {
   }
 
   document.getElementById('resultsBody').innerHTML = bodyHtml;
-  document.getElementById('resultsCount').textContent = rows.length + ' row' + (rows.length !== 1 ? 's' : '') + ' shown';
+  document.getElementById('resultsCount').textContent = rows.length + ' test' + (rows.length !== 1 ? 's' : '') + ' shown';
 }
 
 function filterResults() {
-  var sheet = currentResultsData.sheets[currentSheetIndex];
-  if (!sheet) return;
+  if (!currentResultsData) return;
 
   var searchTerm = document.getElementById('resultsSearch').value.toLowerCase();
   var statusFilter = document.getElementById('statusFilter').value;
 
-  var filtered = sheet.rows.filter(function(row) {
-    // Status filter
-    if (statusFilter && (row['FinalStatus'] || '') !== statusFilter) return false;
-    // Search filter (search across all columns)
+  var filtered = currentResultsData.rows.filter(function(row) {
+    if (statusFilter && row['Status'] !== statusFilter) return false;
     if (searchTerm) {
       var match = false;
       Object.values(row).forEach(function(v) {
@@ -692,21 +764,14 @@ function filterResults() {
     return true;
   });
 
-  // Rebuild headers (same priority order)
-  var priority = ['DataReference','MemberID','TestMethod','TestName','FinalStatus','StackTrace','ErrorMessage','MemberStatus','Scenario','Registered','Timestamp'];
-  var headers = [];
-  priority.forEach(function(h) { if (sheet.headers.indexOf(h) !== -1) headers.push(h); });
-  sheet.headers.forEach(function(h) { if (headers.indexOf(h) === -1) headers.push(h); });
-
-  renderRows(filtered, headers);
+  renderResultsTable(filtered, currentResultsData.headers);
 }
 
 var sortColumn = '';
 var sortAsc = true;
 function sortResults(col) {
   if (sortColumn === col) { sortAsc = !sortAsc; } else { sortColumn = col; sortAsc = true; }
-  var sheet = currentResultsData.sheets[currentSheetIndex];
-  sheet.rows.sort(function(a, b) {
+  currentResultsData.rows.sort(function(a, b) {
     var va = (a[col] || '').toLowerCase();
     var vb = (b[col] || '').toLowerCase();
     if (va < vb) return sortAsc ? -1 : 1;
@@ -742,52 +807,54 @@ async function downloadCSV(app, project, runId) {
 }
 
 // ===========================
-// LOCUST DASHBOARD FUNCTIONS
+// PERFORMANCE TEST (Locust scripts per project)
 // ===========================
 
-var locustScriptsLoaded = false;
+var perfScriptsLoaded = {};
 
-async function loadLocustScripts() {
-  if (locustScriptsLoaded) return;
-  locustScriptsLoaded = true;
+async function loadPerfScripts(project, containerId) {
+  if (perfScriptsLoaded[project]) return;
+  perfScriptsLoaded[project] = true;
+
+  var container = document.getElementById(containerId);
+  container.innerHTML = '<div style="color:#484f58;font-size:12px;padding:4px 0;">Loading...</div>';
 
   try {
-    var res = await fetch('/api/locust/scripts');
+    var res = await fetch('/api/performance/' + project + '/scripts');
     var scripts = await res.json();
-    var container = document.getElementById('locust-scripts-list');
 
     if (scripts.length === 0) {
-      container.innerHTML = '<div style="color:#484f58;font-size:12px;padding:4px 0;">No runs yet. Use locust-publish.ps1 to publish.</div>';
+      container.innerHTML = '<div style="color:#484f58;font-size:12px;padding:4px 0;">No scripts yet. Use locust-publish.ps1 to publish.</div>';
       return;
     }
 
     var html = '';
     scripts.forEach(function(name) {
-      html += '<div class="nav-l2" onclick="loadLocustRuns(\'' + name + '\',this)"><span class="dot"></span>' + name.replace(/_/g, ' ') + '</div>';
+      html += '<div class="nav-l2" onclick="loadPerfRuns(\'' + project + '\',\'' + name + '\',this)"><span class="dot"></span>' + name.replace(/_/g, ' ') + '</div>';
     });
     container.innerHTML = html;
   } catch(err) {
-    document.getElementById('locust-scripts-list').innerHTML = '<div style="color:#f85149;font-size:12px;">Error loading scripts</div>';
+    container.innerHTML = '<div style="color:#f85149;font-size:12px;">Error loading scripts</div>';
   }
 }
 
-async function loadLocustRuns(scriptName, el) {
+async function loadPerfRuns(project, scriptName, el) {
   setActive(el);
 
   var breadcrumb = document.getElementById('breadcrumb');
-  breadcrumb.innerHTML = '<span>Locust</span> / <span>' + scriptName.replace(/_/g, ' ') + '</span>';
+  breadcrumb.innerHTML = '<span>Performance</span> / <span>' + project.replace('_',' ') + '</span> / <span>' + scriptName.replace(/_/g, ' ') + '</span>';
 
   var content = document.getElementById('content');
-  content.innerHTML = '<div class="loading"><div class="spinner"></div> Loading Locust runs...</div>';
+  content.innerHTML = '<div class="loading"><div class="spinner"></div> Loading Performance runs...</div>';
 
   try {
-    var res = await fetch('/api/locust/' + scriptName + '/runs');
+    var res = await fetch('/api/performance/' + project + '/' + scriptName + '/runs');
     var runs = await res.json();
 
     if (runs.length === 0) {
       content.innerHTML =
-        '<div class="section-header"><div class="section-title">Locust &rsaquo; ' + scriptName.replace(/_/g, ' ') + '</div></div>' +
-        '<div class="empty-state"><div class="es-icon">&#9889;</div><p>No Locust runs found yet.<br>Run Locust with --csv flag, then use locust-publish.ps1 to publish results.</p></div>';
+        '<div class="section-header"><div class="section-title">Performance &rsaquo; ' + project.replace('_',' ') + ' &rsaquo; ' + scriptName.replace(/_/g, ' ') + '</div></div>' +
+        '<div class="empty-state"><div class="es-icon">&#9889;</div><p>No runs found yet.<br>Use locust-publish.ps1 to publish results.</p></div>';
       return;
     }
 
@@ -797,7 +864,6 @@ async function loadLocustRuns(scriptName, el) {
       r.totalFailures = Number(r.totalFailures) || 0;
       r.avgResponseTime = Number(r.avgResponseTime) || 0;
       r.passRate = Number(r.passRate) || 0;
-      r.envName = r.envName || 'N/A';
       totalReqs += r.totalRequests;
       totalFails += r.totalFailures;
     });
@@ -811,7 +877,7 @@ async function loadLocustRuns(scriptName, el) {
     html += '<div class="stat-card rate"><div class="value">' + overallPassRate + '%</div><div class="label">Pass Rate</div></div>';
     html += '</div>';
 
-    html += '<div class="section-header"><div class="section-title">Locust &rsaquo; ' + scriptName.replace(/_/g, ' ') + '</div><div class="section-badge">' + totalRuns + ' run' + (totalRuns !== 1 ? 's' : '') + '</div></div>';
+    html += '<div class="section-header"><div class="section-title">Performance &rsaquo; ' + project.replace('_',' ') + ' &rsaquo; ' + scriptName.replace(/_/g, ' ') + '</div><div class="section-badge">' + totalRuns + ' run' + (totalRuns !== 1 ? 's' : '') + '</div></div>';
 
     runs.forEach(function(run) {
       var date = new Date(run.date).toLocaleString();
@@ -822,7 +888,7 @@ async function loadLocustRuns(scriptName, el) {
 
       html += '<div class="run-card">';
       html += '<div class="run-status-icon ' + statusClass + '">' + statusIcon + '</div>';
-      html += '<div class="run-info"><div class="run-date">' + date + '</div><div class="run-id">' + run.id + ' &middot; ' + run.envName + '</div></div>';
+      html += '<div class="run-info"><div class="run-date">' + date + '</div><div class="run-id">' + run.id + ' &middot; ' + (run.envName || 'N/A') + '</div></div>';
       html += '<div class="run-bar"><div class="run-bar-inner"><div class="run-bar-passed" style="width:' + pct + '%"></div><div class="run-bar-failed" style="width:' + fPct + '%"></div></div></div>';
       html += '<div class="run-stats">';
       html += '<div class="run-stat p"><div class="num">' + run.totalRequests + '</div><div class="lbl">Reqs</div></div>';
@@ -830,7 +896,7 @@ async function loadLocustRuns(scriptName, el) {
       html += '<div class="run-stat t"><div class="num">' + run.avgResponseTime + 'ms</div><div class="lbl">Avg RT</div></div>';
       html += '</div>';
       html += '<div class="run-duration">' + run.passRate + '%</div>';
-      html += '<div class="run-action"><button class="btn-results" onclick="openLocustStats(\'' + scriptName + '\',\'' + run.id + '\')">&#9776; Stats</button><button class="btn-results" onclick="downloadLocustCSV(\'' + scriptName + '\',\'' + run.id + '\')">&#11015; CSV</button></div>';
+      html += '<div class="run-action"><button class="btn-results" onclick="openPerfStats(\'' + project + '\',\'' + scriptName + '\',\'' + run.id + '\')">&#9776; Stats</button><button class="btn-results" onclick="downloadPerfCSV(\'' + project + '\',\'' + scriptName + '\',\'' + run.id + '\')">&#11015; CSV</button></div>';
       html += '</div>';
     });
 
@@ -840,9 +906,37 @@ async function loadLocustRuns(scriptName, el) {
   }
 }
 
-async function downloadLocustCSV(scriptName, runId) {
+async function openPerfStats(project, scriptName, runId) {
+  var overlay = document.getElementById('resultsOverlay');
+  overlay.classList.add('active');
+  document.getElementById('resultsTitle').textContent = 'Performance / ' + project.replace('_',' ') + ' / ' + scriptName.replace(/_/g, ' ') + ' - ' + runId;
+  document.getElementById('resultsHead').innerHTML = '';
+  document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#8b949e;text-align:center;">Loading stats...</td></tr>';
+  document.getElementById('resultsCount').textContent = '';
+  document.getElementById('resultsSearch').value = '';
+  document.getElementById('statusFilter').value = '';
+
   try {
-    var res = await fetch('/api/locust/' + scriptName + '/' + runId + '/stats');
+    var res = await fetch('/api/performance/' + project + '/' + scriptName + '/' + runId + '/stats');
+    var data = await res.json();
+
+    if (!data.files || data.files.length === 0) {
+      document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#8b949e;text-align:center;">No stats data found for this run.</td></tr>';
+      return;
+    }
+
+    // Use first stats file
+    var statsFile = data.files[0];
+    currentResultsData = { headers: statsFile.headers, rows: statsFile.rows };
+    renderResultsTable(statsFile.rows, statsFile.headers);
+  } catch(err) {
+    document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#f85149;text-align:center;">Error: ' + err.message + '</td></tr>';
+  }
+}
+
+async function downloadPerfCSV(project, scriptName, runId) {
+  try {
+    var res = await fetch('/api/performance/' + project + '/' + scriptName + '/' + runId + '/stats');
     var data = await res.json();
     if (!data.files || data.files.length === 0) {
       alert('No CSV files found for this run.');
@@ -850,7 +944,7 @@ async function downloadLocustCSV(scriptName, runId) {
     }
     data.files.forEach(function(f) {
       var a = document.createElement('a');
-      a.href = '/reports/Locust/' + scriptName + '/' + runId + '/' + f.name;
+      a.href = '/reports/Performance/' + project + '/' + scriptName + '/' + runId + '/' + f.name;
       a.download = f.name;
       document.body.appendChild(a);
       a.click();
@@ -858,53 +952,6 @@ async function downloadLocustCSV(scriptName, runId) {
     });
   } catch(err) {
     alert('Error downloading CSV: ' + err.message);
-  }
-}
-
-async function openLocustStats(scriptName, runId) {
-  var overlay = document.getElementById('resultsOverlay');
-  overlay.classList.add('active');
-  document.getElementById('resultsTitle').textContent = 'Locust / ' + scriptName.replace(/_/g, ' ') + ' - ' + runId;
-  document.getElementById('resultsHead').innerHTML = '';
-  document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#8b949e;text-align:center;">Loading stats...</td></tr>';
-  document.getElementById('resultsTabs').innerHTML = '';
-  document.getElementById('resultsCount').textContent = '';
-  document.getElementById('resultsSearch').value = '';
-  document.getElementById('statusFilter').value = '';
-
-  try {
-    var res = await fetch('/api/locust/' + scriptName + '/' + runId + '/stats');
-    var data = await res.json();
-
-    // Convert Locust data to same format as Allure results for reuse
-    var sheets = [];
-    data.files.forEach(function(f) {
-      sheets.push({ name: f.type.charAt(0).toUpperCase() + f.type.slice(1) + ' (' + f.name + ')', headers: f.headers, rows: f.rows });
-    });
-
-    if (data.log) {
-      // Add log as a pseudo-sheet
-      sheets.push({ name: 'Log', headers: ['Log Output'], rows: data.log.split('\n').slice(-200).map(function(line) { return { 'Log Output': line }; }) });
-    }
-
-    if (sheets.length === 0) {
-      document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#8b949e;text-align:center;">No stats data found for this run.</td></tr>';
-      return;
-    }
-
-    currentResultsData = { sheets: sheets };
-    currentSheetIndex = 0;
-
-    var tabsHtml = '';
-    sheets.forEach(function(sheet, i) {
-      var cls = i === 0 ? ' active' : '';
-      tabsHtml += '<div class="results-tab' + cls + '" onclick="switchSheet(' + i + ',this)">' + sheet.name + '</div>';
-    });
-    document.getElementById('resultsTabs').innerHTML = tabsHtml;
-
-    renderSheet(0);
-  } catch(err) {
-    document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#f85149;text-align:center;">Error: ' + err.message + '</td></tr>';
   }
 }
 </script>
