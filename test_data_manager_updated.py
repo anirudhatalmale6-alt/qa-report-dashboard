@@ -30,10 +30,11 @@ def _ensure_results_dir():
     os.makedirs(RESULTS_DIR, exist_ok=True)
 
 
-def init_results_csv(sheet_name: str, file_path: str = TEST_PLAN_PATH):
+def init_results_csv(sheet_name: str, file_path: str = TEST_PLAN_PATH, data_refs: list = None):
     """
-    Initialize a results CSV for a sheet by copying DataReference and MemberID
-    from the source Excel. Called once at session start.
+    Initialize a results CSV for a sheet by copying rows from the source Excel.
+    If data_refs is provided, only rows matching those DataReference values are included.
+    Called once at session start.
     """
     _ensure_results_dir()
     csv_path = _get_results_csv_path(sheet_name)
@@ -56,6 +57,10 @@ def init_results_csv(sheet_name: str, file_path: str = TEST_PLAN_PATH):
         rows = []
         for row in sheet.iter_rows(min_row=2, values_only=True):
             row_data = {headers[i]: row[i] for i in range(min(len(headers), len(row)))}
+            # Filter by DataReference if provided
+            if data_refs is not None and 'DataReference' in row_data:
+                if str(row_data.get('DataReference', '')).strip() not in data_refs:
+                    continue
             rows.append(row_data)
         wb.close()
 
