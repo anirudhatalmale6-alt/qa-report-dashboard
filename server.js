@@ -13,11 +13,11 @@ app.use("/reports", express.static(REPORTS_DIR));
 // PERFORMANCE TEST API ENDPOINTS (must be before generic :app/:project routes)
 // ===========================
 
-// API: list scripts for a performance project
-// e.g. /api/performance/App_Migration/scripts
-app.get("/api/performance/:project/scripts", (req, res) => {
-  const { project } = req.params;
-  const projDir = path.join(REPORTS_DIR, "Performance", project);
+// API: list scripts for a performance app/project
+// e.g. /api/performance/ESS/App_Migration/scripts
+app.get("/api/performance/:app/:project/scripts", (req, res) => {
+  const { app: appName, project } = req.params;
+  const projDir = path.join(REPORTS_DIR, "Performance", appName, project);
   if (!fs.existsSync(projDir)) {
     return res.json([]);
   }
@@ -29,10 +29,10 @@ app.get("/api/performance/:project/scripts", (req, res) => {
 });
 
 // API: list runs for a performance script
-// e.g. /api/performance/App_Migration/WSS_Retiredmem/runs
-app.get("/api/performance/:project/:script/runs", (req, res) => {
-  const { project, script } = req.params;
-  const scriptDir = path.join(REPORTS_DIR, "Performance", project, script);
+// e.g. /api/performance/ESS/App_Migration/WSS_Retiredmem/runs
+app.get("/api/performance/:app/:project/:script/runs", (req, res) => {
+  const { app: appName, project, script } = req.params;
+  const scriptDir = path.join(REPORTS_DIR, "Performance", appName, project, script);
   if (!fs.existsSync(scriptDir)) {
     return res.json([]);
   }
@@ -75,10 +75,10 @@ app.get("/api/performance/:project/:script/runs", (req, res) => {
 });
 
 // API: get performance stats CSV data for a specific run
-// e.g. /api/performance/App_Migration/WSS_Retiredmem/20260410_120000/stats
-app.get("/api/performance/:project/:script/:runId/stats", (req, res) => {
-  const { project, script, runId } = req.params;
-  const runDir = path.join(REPORTS_DIR, "Performance", project, script, runId);
+// e.g. /api/performance/ESS/App_Migration/WSS_Retiredmem/20260410_120000/stats
+app.get("/api/performance/:app/:project/:script/:runId/stats", (req, res) => {
+  const { app: appName, project, script, runId } = req.params;
+  const runDir = path.join(REPORTS_DIR, "Performance", appName, project, script, runId);
   if (!fs.existsSync(runDir)) {
     return res.json({ files: [] });
   }

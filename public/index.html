@@ -469,22 +469,55 @@
 
   <div class="sidebar-label">Performance Test</div>
 
-  <!-- App Migration -->
-  <div class="nav-l1" onclick="toggle(this,'sub-perf-appmig')">App Migration <span class="chevron">&#9654;</span></div>
-  <div id="sub-perf-appmig" class="sub-l1">
-    <div id="perf-appmig-scripts" style="padding:8px 20px 8px 36px;color:#484f58;font-size:12px;">No scripts yet</div>
+  <!-- ESS Perf -->
+  <div class="nav-l1" onclick="toggle(this,'sub-perf-ess')">ESS <span class="chevron">&#9654;</span></div>
+  <div id="sub-perf-ess" class="sub-l1">
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-ess-appmig','ESS','App_Migration')"><span class="dot"></span>App Migration <span class="chevron">&#9654;</span></div>
+    <div id="sub-perf-ess-appmig" class="sub-l2">
+      <div id="perf-ess-appmig-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
+    </div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-ess-ada','ESS','ADA')"><span class="dot"></span>ADA <span class="chevron">&#9654;</span></div>
+    <div id="sub-perf-ess-ada" class="sub-l2">
+      <div id="perf-ess-ada-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
+    </div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-ess-maint','ESS','Maintenance')"><span class="dot"></span>Maintenance <span class="chevron">&#9654;</span></div>
+    <div id="sub-perf-ess-maint" class="sub-l2">
+      <div id="perf-ess-maint-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
+    </div>
   </div>
 
-  <!-- ADA -->
-  <div class="nav-l1" onclick="toggle(this,'sub-perf-ada')">ADA <span class="chevron">&#9654;</span></div>
-  <div id="sub-perf-ada" class="sub-l1">
-    <div id="perf-ada-scripts" style="padding:8px 20px 8px 36px;color:#484f58;font-size:12px;">No scripts yet</div>
+  <!-- Clarety Perf -->
+  <div class="nav-l1" onclick="toggle(this,'sub-perf-clarety')">Clarety <span class="chevron">&#9654;</span></div>
+  <div id="sub-perf-clarety" class="sub-l1">
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-clarety-appmig','Clarety','App_Migration')"><span class="dot"></span>App Migration <span class="chevron">&#9654;</span></div>
+    <div id="sub-perf-clarety-appmig" class="sub-l2">
+      <div id="perf-clarety-appmig-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
+    </div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-clarety-ada','Clarety','ADA')"><span class="dot"></span>ADA <span class="chevron">&#9654;</span></div>
+    <div id="sub-perf-clarety-ada" class="sub-l2">
+      <div id="perf-clarety-ada-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
+    </div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-clarety-maint','Clarety','Maintenance')"><span class="dot"></span>Maintenance <span class="chevron">&#9654;</span></div>
+    <div id="sub-perf-clarety-maint" class="sub-l2">
+      <div id="perf-clarety-maint-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
+    </div>
   </div>
 
-  <!-- Maintenance -->
-  <div class="nav-l1" onclick="toggle(this,'sub-perf-maint')">Maintenance <span class="chevron">&#9654;</span></div>
-  <div id="sub-perf-maint" class="sub-l1">
-    <div id="perf-maint-scripts" style="padding:8px 20px 8px 36px;color:#484f58;font-size:12px;">No scripts yet</div>
+  <!-- MiAccount Perf -->
+  <div class="nav-l1" onclick="toggle(this,'sub-perf-miaccount')">MiAccount <span class="chevron">&#9654;</span></div>
+  <div id="sub-perf-miaccount" class="sub-l1">
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-miaccount-appmig','MiAccount','App_Migration')"><span class="dot"></span>App Migration <span class="chevron">&#9654;</span></div>
+    <div id="sub-perf-miaccount-appmig" class="sub-l2">
+      <div id="perf-miaccount-appmig-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
+    </div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-miaccount-ada','MiAccount','ADA')"><span class="dot"></span>ADA <span class="chevron">&#9654;</span></div>
+    <div id="sub-perf-miaccount-ada" class="sub-l2">
+      <div id="perf-miaccount-ada-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
+    </div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-miaccount-maint','MiAccount','Maintenance')"><span class="dot"></span>Maintenance <span class="chevron">&#9654;</span></div>
+    <div id="sub-perf-miaccount-maint" class="sub-l2">
+      <div id="perf-miaccount-maint-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
+    </div>
   </div>
 </nav>
 
@@ -551,10 +584,6 @@ function toggle(item, subId) {
   sub.classList.toggle('open');
   item.classList.toggle('expanded');
 
-  // Auto-load performance test scripts when expanding
-  if (subId === 'sub-perf-appmig' && sub.classList.contains('open')) loadPerfScripts('App_Migration', 'perf-appmig-scripts');
-  if (subId === 'sub-perf-ada' && sub.classList.contains('open')) loadPerfScripts('ADA', 'perf-ada-scripts');
-  if (subId === 'sub-perf-maint' && sub.classList.contains('open')) loadPerfScripts('Maintenance', 'perf-maint-scripts');
 }
 
 function setActive(el) {
@@ -812,25 +841,44 @@ async function downloadCSV(app, project, runId) {
 
 var perfScriptsLoaded = {};
 
-async function loadPerfScripts(project, containerId) {
-  if (perfScriptsLoaded[project]) return;
-  perfScriptsLoaded[project] = true;
+function togglePerfProject(el, subId, app, project) {
+  var sub = document.getElementById(subId);
+  sub.classList.toggle('open');
+  el.classList.toggle('expanded');
+
+  // Load scripts when expanding
+  var key = app + '/' + project;
+  if (sub.classList.contains('open') && !perfScriptsLoaded[key]) {
+    var containerId = 'perf-' + app.toLowerCase() + '-' + project.toLowerCase().replace('_','') + '-scripts';
+    // Map to correct container id
+    if (project === 'App_Migration') containerId = 'perf-' + app.toLowerCase() + '-appmig-scripts';
+    else if (project === 'ADA') containerId = 'perf-' + app.toLowerCase() + '-ada-scripts';
+    else if (project === 'Maintenance') containerId = 'perf-' + app.toLowerCase() + '-maint-scripts';
+    loadPerfScripts(app, project, containerId);
+  }
+}
+
+async function loadPerfScripts(app, project, containerId) {
+  var key = app + '/' + project;
+  if (perfScriptsLoaded[key]) return;
+  perfScriptsLoaded[key] = true;
 
   var container = document.getElementById(containerId);
+  if (!container) return;
   container.innerHTML = '<div style="color:#484f58;font-size:12px;padding:4px 0;">Loading...</div>';
 
   try {
-    var res = await fetch('/api/performance/' + project + '/scripts');
+    var res = await fetch('/api/performance/' + app + '/' + project + '/scripts');
     var scripts = await res.json();
 
     if (scripts.length === 0) {
-      container.innerHTML = '<div style="color:#484f58;font-size:12px;padding:4px 0;">No scripts yet. Use locust-publish.ps1 to publish.</div>';
+      container.innerHTML = '<div style="color:#484f58;font-size:12px;padding:4px 0;">No scripts yet</div>';
       return;
     }
 
     var html = '';
     scripts.forEach(function(name) {
-      html += '<div class="nav-l2" onclick="loadPerfRuns(\'' + project + '\',\'' + name + '\',this)"><span class="dot"></span>' + name.replace(/_/g, ' ') + '</div>';
+      html += '<div class="nav-l3" onclick="loadPerfRuns(\'' + app + '\',\'' + project + '\',\'' + name + '\',this);event.stopPropagation()"><span class="dot"></span>' + name.replace(/_/g, ' ') + '</div>';
     });
     container.innerHTML = html;
   } catch(err) {
@@ -838,22 +886,24 @@ async function loadPerfScripts(project, containerId) {
   }
 }
 
-async function loadPerfRuns(project, scriptName, el) {
-  setActive(el);
+async function loadPerfRuns(app, project, scriptName, el) {
+  // Clear active from all nav items
+  document.querySelectorAll('.nav-l2, .nav-l3').forEach(function(item) { item.classList.remove('active'); });
+  if (el) el.classList.add('active');
 
   var breadcrumb = document.getElementById('breadcrumb');
-  breadcrumb.innerHTML = '<span>Performance</span> / <span>' + project.replace('_',' ') + '</span> / <span>' + scriptName.replace(/_/g, ' ') + '</span>';
+  breadcrumb.innerHTML = '<span>Performance</span> / <span>' + app + '</span> / <span>' + project.replace('_',' ') + '</span> / <span>' + scriptName.replace(/_/g, ' ') + '</span>';
 
   var content = document.getElementById('content');
   content.innerHTML = '<div class="loading"><div class="spinner"></div> Loading Performance runs...</div>';
 
   try {
-    var res = await fetch('/api/performance/' + project + '/' + scriptName + '/runs');
+    var res = await fetch('/api/performance/' + app + '/' + project + '/' + scriptName + '/runs');
     var runs = await res.json();
 
     if (runs.length === 0) {
       content.innerHTML =
-        '<div class="section-header"><div class="section-title">Performance &rsaquo; ' + project.replace('_',' ') + ' &rsaquo; ' + scriptName.replace(/_/g, ' ') + '</div></div>' +
+        '<div class="section-header"><div class="section-title">' + app + ' &rsaquo; ' + project.replace('_',' ') + ' &rsaquo; ' + scriptName.replace(/_/g, ' ') + '</div></div>' +
         '<div class="empty-state"><div class="es-icon">&#9889;</div><p>No runs found yet.<br>Use locust-publish.ps1 to publish results.</p></div>';
       return;
     }
@@ -877,7 +927,7 @@ async function loadPerfRuns(project, scriptName, el) {
     html += '<div class="stat-card rate"><div class="value">' + overallPassRate + '%</div><div class="label">Pass Rate</div></div>';
     html += '</div>';
 
-    html += '<div class="section-header"><div class="section-title">Performance &rsaquo; ' + project.replace('_',' ') + ' &rsaquo; ' + scriptName.replace(/_/g, ' ') + '</div><div class="section-badge">' + totalRuns + ' run' + (totalRuns !== 1 ? 's' : '') + '</div></div>';
+    html += '<div class="section-header"><div class="section-title">' + app + ' &rsaquo; ' + project.replace('_',' ') + ' &rsaquo; ' + scriptName.replace(/_/g, ' ') + '</div><div class="section-badge">' + totalRuns + ' run' + (totalRuns !== 1 ? 's' : '') + '</div></div>';
 
     runs.forEach(function(run) {
       var date = new Date(run.date).toLocaleString();
@@ -896,7 +946,7 @@ async function loadPerfRuns(project, scriptName, el) {
       html += '<div class="run-stat t"><div class="num">' + run.avgResponseTime + 'ms</div><div class="lbl">Avg RT</div></div>';
       html += '</div>';
       html += '<div class="run-duration">' + run.passRate + '%</div>';
-      html += '<div class="run-action"><button class="btn-results" onclick="openPerfStats(\'' + project + '\',\'' + scriptName + '\',\'' + run.id + '\')">&#9776; Stats</button><button class="btn-results" onclick="downloadPerfCSV(\'' + project + '\',\'' + scriptName + '\',\'' + run.id + '\')">&#11015; CSV</button></div>';
+      html += '<div class="run-action"><button class="btn-results" onclick="openPerfStats(\'' + app + '\',\'' + project + '\',\'' + scriptName + '\',\'' + run.id + '\')">&#9776; Stats</button><button class="btn-results" onclick="downloadPerfCSV(\'' + app + '\',\'' + project + '\',\'' + scriptName + '\',\'' + run.id + '\')">&#11015; CSV</button></div>';
       html += '</div>';
     });
 
@@ -906,10 +956,10 @@ async function loadPerfRuns(project, scriptName, el) {
   }
 }
 
-async function openPerfStats(project, scriptName, runId) {
+async function openPerfStats(app, project, scriptName, runId) {
   var overlay = document.getElementById('resultsOverlay');
   overlay.classList.add('active');
-  document.getElementById('resultsTitle').textContent = 'Performance / ' + project.replace('_',' ') + ' / ' + scriptName.replace(/_/g, ' ') + ' - ' + runId;
+  document.getElementById('resultsTitle').textContent = app + ' / ' + project.replace('_',' ') + ' / ' + scriptName.replace(/_/g, ' ') + ' - ' + runId;
   document.getElementById('resultsHead').innerHTML = '';
   document.getElementById('resultsBody').innerHTML = '<tr><td style="padding:40px;color:#8b949e;text-align:center;">Loading stats...</td></tr>';
   document.getElementById('resultsCount').textContent = '';
@@ -917,7 +967,7 @@ async function openPerfStats(project, scriptName, runId) {
   document.getElementById('statusFilter').value = '';
 
   try {
-    var res = await fetch('/api/performance/' + project + '/' + scriptName + '/' + runId + '/stats');
+    var res = await fetch('/api/performance/' + app + '/' + project + '/' + scriptName + '/' + runId + '/stats');
     var data = await res.json();
 
     if (!data.files || data.files.length === 0) {
@@ -925,7 +975,6 @@ async function openPerfStats(project, scriptName, runId) {
       return;
     }
 
-    // Use first stats file
     var statsFile = data.files[0];
     currentResultsData = { headers: statsFile.headers, rows: statsFile.rows };
     renderResultsTable(statsFile.rows, statsFile.headers);
@@ -934,9 +983,9 @@ async function openPerfStats(project, scriptName, runId) {
   }
 }
 
-async function downloadPerfCSV(project, scriptName, runId) {
+async function downloadPerfCSV(app, project, scriptName, runId) {
   try {
-    var res = await fetch('/api/performance/' + project + '/' + scriptName + '/' + runId + '/stats');
+    var res = await fetch('/api/performance/' + app + '/' + project + '/' + scriptName + '/' + runId + '/stats');
     var data = await res.json();
     if (!data.files || data.files.length === 0) {
       alert('No CSV files found for this run.');
@@ -944,7 +993,7 @@ async function downloadPerfCSV(project, scriptName, runId) {
     }
     data.files.forEach(function(f) {
       var a = document.createElement('a');
-      a.href = '/reports/Performance/' + project + '/' + scriptName + '/' + runId + '/' + f.name;
+      a.href = '/reports/Performance/' + app + '/' + project + '/' + scriptName + '/' + runId + '/' + f.name;
       a.download = f.name;
       document.body.appendChild(a);
       a.click();
