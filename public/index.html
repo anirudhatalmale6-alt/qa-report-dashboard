@@ -89,7 +89,7 @@
   .sub-l1 { display: none; }
   .sub-l1.open { display: block; }
 
-  /* Level 2 - Applications (ESS, Clarety, MiAccount) */
+  /* Level 2 - Applications (ESS, CLT, WSS) */
   .nav-l2 {
     display: flex;
     align-items: center;
@@ -451,20 +451,20 @@
     <div class="nav-l2" onclick="loadRuns('ESS','Maintenance',this)"><span class="dot"></span>Maintenance</div>
   </div>
 
-  <!-- Clarety -->
-  <div class="nav-l1" onclick="toggle(this,'sub-clarety')">Clarety <span class="chevron">&#9654;</span></div>
+  <!-- CLT -->
+  <div class="nav-l1" onclick="toggle(this,'sub-clarety')">CLT <span class="chevron">&#9654;</span></div>
   <div id="sub-clarety" class="sub-l1">
-    <div class="nav-l2" onclick="loadRuns('Clarety','App_Migration',this)"><span class="dot"></span>App Migration</div>
-    <div class="nav-l2" onclick="loadRuns('Clarety','ADA',this)"><span class="dot"></span>ADA</div>
-    <div class="nav-l2" onclick="loadRuns('Clarety','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+    <div class="nav-l2" onclick="loadRuns('CLT','App_Migration',this)"><span class="dot"></span>App Migration</div>
+    <div class="nav-l2" onclick="loadRuns('CLT','ADA',this)"><span class="dot"></span>ADA</div>
+    <div class="nav-l2" onclick="loadRuns('CLT','Maintenance',this)"><span class="dot"></span>Maintenance</div>
   </div>
 
-  <!-- MiAccount -->
-  <div class="nav-l1" onclick="toggle(this,'sub-miaccount')">MiAccount <span class="chevron">&#9654;</span></div>
+  <!-- WSS -->
+  <div class="nav-l1" onclick="toggle(this,'sub-miaccount')">WSS <span class="chevron">&#9654;</span></div>
   <div id="sub-miaccount" class="sub-l1">
-    <div class="nav-l2" onclick="loadRuns('MiAccount','App_Migration',this)"><span class="dot"></span>App Migration</div>
-    <div class="nav-l2" onclick="loadRuns('MiAccount','ADA',this)"><span class="dot"></span>ADA</div>
-    <div class="nav-l2" onclick="loadRuns('MiAccount','Maintenance',this)"><span class="dot"></span>Maintenance</div>
+    <div class="nav-l2" onclick="loadRuns('WSS','App_Migration',this)"><span class="dot"></span>App Migration</div>
+    <div class="nav-l2" onclick="loadRuns('WSS','ADA',this)"><span class="dot"></span>ADA</div>
+    <div class="nav-l2" onclick="loadRuns('WSS','Maintenance',this)"><span class="dot"></span>Maintenance</div>
   </div>
 
   <div class="sidebar-label">Performance Test</div>
@@ -486,35 +486,35 @@
     </div>
   </div>
 
-  <!-- Clarety Perf -->
-  <div class="nav-l1" onclick="toggle(this,'sub-perf-clarety')">Clarety <span class="chevron">&#9654;</span></div>
+  <!-- CLT Perf -->
+  <div class="nav-l1" onclick="toggle(this,'sub-perf-clarety')">CLT <span class="chevron">&#9654;</span></div>
   <div id="sub-perf-clarety" class="sub-l1">
-    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-clarety-appmig','Clarety','App_Migration')"><span class="dot"></span>App Migration <span class="chevron">&#9654;</span></div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-clarety-appmig','CLT','App_Migration')"><span class="dot"></span>App Migration <span class="chevron">&#9654;</span></div>
     <div id="sub-perf-clarety-appmig" class="sub-l2">
       <div id="perf-clarety-appmig-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
     </div>
-    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-clarety-ada','Clarety','ADA')"><span class="dot"></span>ADA <span class="chevron">&#9654;</span></div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-clarety-ada','CLT','ADA')"><span class="dot"></span>ADA <span class="chevron">&#9654;</span></div>
     <div id="sub-perf-clarety-ada" class="sub-l2">
       <div id="perf-clarety-ada-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
     </div>
-    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-clarety-maint','Clarety','Maintenance')"><span class="dot"></span>Maintenance <span class="chevron">&#9654;</span></div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-clarety-maint','CLT','Maintenance')"><span class="dot"></span>Maintenance <span class="chevron">&#9654;</span></div>
     <div id="sub-perf-clarety-maint" class="sub-l2">
       <div id="perf-clarety-maint-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
     </div>
   </div>
 
-  <!-- MiAccount Perf -->
-  <div class="nav-l1" onclick="toggle(this,'sub-perf-miaccount')">MiAccount <span class="chevron">&#9654;</span></div>
+  <!-- WSS Perf -->
+  <div class="nav-l1" onclick="toggle(this,'sub-perf-miaccount')">WSS <span class="chevron">&#9654;</span></div>
   <div id="sub-perf-miaccount" class="sub-l1">
-    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-miaccount-appmig','MiAccount','App_Migration')"><span class="dot"></span>App Migration <span class="chevron">&#9654;</span></div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-miaccount-appmig','WSS','App_Migration')"><span class="dot"></span>App Migration <span class="chevron">&#9654;</span></div>
     <div id="sub-perf-miaccount-appmig" class="sub-l2">
       <div id="perf-miaccount-appmig-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
     </div>
-    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-miaccount-ada','MiAccount','ADA')"><span class="dot"></span>ADA <span class="chevron">&#9654;</span></div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-miaccount-ada','WSS','ADA')"><span class="dot"></span>ADA <span class="chevron">&#9654;</span></div>
     <div id="sub-perf-miaccount-ada" class="sub-l2">
       <div id="perf-miaccount-ada-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
     </div>
-    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-miaccount-maint','MiAccount','Maintenance')"><span class="dot"></span>Maintenance <span class="chevron">&#9654;</span></div>
+    <div class="nav-l2" onclick="togglePerfProject(this,'sub-perf-miaccount-maint','WSS','Maintenance')"><span class="dot"></span>Maintenance <span class="chevron">&#9654;</span></div>
     <div id="sub-perf-miaccount-maint" class="sub-l2">
       <div id="perf-miaccount-maint-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
     </div>
