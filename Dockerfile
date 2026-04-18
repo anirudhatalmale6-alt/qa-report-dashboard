@@ -9,7 +9,9 @@ RUN npm ci --production
 # Copy application code
 COPY server.js ./
 COPY public/ ./public/
-COPY ai-tools/ ./ai-tools/
+
+# Copy ai-tools if it exists (optional)
+COPY ai-tool[s]/ ./ai-tools/
 
 # Create reports directory (will be overridden by volume mount)
 RUN mkdir -p /app/reports
