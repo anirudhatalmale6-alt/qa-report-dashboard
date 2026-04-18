@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  qa-dashboard:
+    build: .
+    container_name: qa-dashboard
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./reports:/app/reports
+    environment:
+      - PORT=3000
+    restart: unless-stopped

@@ -1,0 +1,10 @@
+node_modules
+reports
+*.py
+*.ps1
+*.xlsx
+locust-enhancements
+locator-validator
+setup
+launch.json
+.git
