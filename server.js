@@ -18,13 +18,18 @@ app.use("/reports", express.static(REPORTS_DIR));
 app.get("/api/performance/:app/:project/scripts", (req, res) => {
   const { app: appName, project } = req.params;
   const projDir = path.join(REPORTS_DIR, "Performance", appName, project);
+  console.log(`[DEBUG] GET /api/performance/${appName}/${project}/scripts`);
+  console.log(`[DEBUG]   Looking in: ${projDir}`);
+  console.log(`[DEBUG]   Directory exists: ${fs.existsSync(projDir)}`);
   if (!fs.existsSync(projDir)) {
+    console.log(`[DEBUG]   => Returning empty [] (directory not found)`);
     return res.json([]);
   }
   const scripts = fs
     .readdirSync(projDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
+  console.log(`[DEBUG]   => Found scripts: ${JSON.stringify(scripts)}`);
   res.json(scripts);
 });
 
@@ -33,7 +38,11 @@ app.get("/api/performance/:app/:project/scripts", (req, res) => {
 app.get("/api/performance/:app/:project/:script/runs", (req, res) => {
   const { app: appName, project, script } = req.params;
   const scriptDir = path.join(REPORTS_DIR, "Performance", appName, project, script);
+  console.log(`[DEBUG] GET /api/performance/${appName}/${project}/${script}/runs`);
+  console.log(`[DEBUG]   Looking in: ${scriptDir}`);
+  console.log(`[DEBUG]   Directory exists: ${fs.existsSync(scriptDir)}`);
   if (!fs.existsSync(scriptDir)) {
+    console.log(`[DEBUG]   => Returning empty [] (directory not found)`);
     return res.json([]);
   }
 
@@ -79,7 +88,11 @@ app.get("/api/performance/:app/:project/:script/runs", (req, res) => {
 app.get("/api/performance/:app/:project/:script/:runId/stats", (req, res) => {
   const { app: appName, project, script, runId } = req.params;
   const runDir = path.join(REPORTS_DIR, "Performance", appName, project, script, runId);
+  console.log(`[DEBUG] GET /api/performance/${appName}/${project}/${script}/${runId}/stats`);
+  console.log(`[DEBUG]   Looking in: ${runDir}`);
+  console.log(`[DEBUG]   Directory exists: ${fs.existsSync(runDir)}`);
   if (!fs.existsSync(runDir)) {
+    console.log(`[DEBUG]   => Returning empty (directory not found)`);
     return res.json({ files: [] });
   }
 

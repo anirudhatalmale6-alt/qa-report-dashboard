@@ -849,11 +849,17 @@ function togglePerfProject(el, subId, app, project) {
   // Load scripts when expanding
   var key = app + '/' + project;
   if (sub.classList.contains('open') && !perfScriptsLoaded[key]) {
-    var containerId = 'perf-' + app.toLowerCase() + '-' + project.toLowerCase().replace('_','') + '-scripts';
-    // Map to correct container id
-    if (project === 'App_Migration') containerId = 'perf-' + app.toLowerCase() + '-appmig-scripts';
-    else if (project === 'ADA') containerId = 'perf-' + app.toLowerCase() + '-ada-scripts';
-    else if (project === 'Maintenance') containerId = 'perf-' + app.toLowerCase() + '-maint-scripts';
+    // Map app name to sidebar ID prefix
+    var appPrefix = app.toLowerCase();
+    if (app === 'WSS') appPrefix = 'miaccount';
+    else if (app === 'CLT') appPrefix = 'clarety';
+
+    var projSuffix = project.toLowerCase().replace('_','');
+    if (project === 'App_Migration') projSuffix = 'appmig';
+    else if (project === 'Maintenance') projSuffix = 'maint';
+
+    var containerId = 'perf-' + appPrefix + '-' + projSuffix + '-scripts';
+    console.log('[DEBUG] togglePerfProject: app=' + app + ' project=' + project + ' containerId=' + containerId);
     loadPerfScripts(app, project, containerId);
   }
 }
