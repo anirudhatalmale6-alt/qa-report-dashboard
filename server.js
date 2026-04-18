@@ -135,6 +135,22 @@ app.get("/api/performance/:app/:project/:script/:runId/stats", (req, res) => {
 // ALLURE API ENDPOINTS
 // ===========================
 
+// API: get runmanager.json stats for a specific run
+// e.g. /api/ESS/App_Migration/20260409_120000/runmanager
+app.get("/api/:app/:project/:runId/runmanager", (req, res) => {
+  const { app: appName, project, runId } = req.params;
+  const rmPath = path.join(REPORTS_DIR, appName, project, runId, "runmanager.json");
+  if (!fs.existsSync(rmPath)) {
+    return res.json(null);
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(rmPath, "utf-8"));
+    res.json(data);
+  } catch (e) {
+    res.json(null);
+  }
+});
+
 // API: list runs for app/project (2-level) - Allure reports
 // e.g. /api/ESS/App_Migration/runs
 app.get("/api/:app/:project/runs", (req, res) => {

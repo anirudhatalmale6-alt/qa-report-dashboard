@@ -486,7 +486,31 @@ def pytest_sessionfinish(session, exitstatus):
     print("✔ categories.json added")
 
     # ---------------------------------------------------------
-    # 5. RUN THE POWERSHELL SCRIPT TO GENERATE THE REPORT
+    # 5. GENERATE runmanager.json (for dashboard stats)
+    # ---------------------------------------------------------
+    try:
+        df_full = pd.read_excel(TEST_PLAN_PATH, sheet_name='TestPlan')
+        total_scripts = len(df_full)
+        executed_df = df_full[df_full['Execute'].str.strip().str.lower() == 'yes']
+        executed_count = len(executed_df)
+        did_not_run = total_scripts - executed_count
+
+        runmanager_data = {
+            "totalScripts": total_scripts,
+            "executed": executed_count,
+            "didNotRun": did_not_run
+        }
+
+        runmanager_path = os.path.join(results_dir, "runmanager.json")
+        with open(runmanager_path, "w") as f:
+            json.dump(runmanager_data, f, indent=2)
+
+        print(f"✔ runmanager.json added (Total: {total_scripts}, Executed: {executed_count}, Did Not Run: {did_not_run})")
+    except Exception as e:
+        print(f"⚠ Could not generate runmanager.json: {e}")
+
+    # ---------------------------------------------------------
+    # 6. RUN THE POWERSHELL SCRIPT TO GENERATE THE REPORT
     # ---------------------------------------------------------
     current_dir = os.path.dirname(os.path.abspath(__file__))
     allure_script_path = os.path.join(current_dir, 'allure.ps1')

@@ -625,11 +625,24 @@ async function loadRuns(app, project, el) {
     });
     var passRate = totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(1) : '0.0';
 
+    // Fetch runmanager.json from the latest run for Total Scripts / Did Not Run
+    var rmData = null;
+    try {
+      var rmRes = await fetch('/api/' + app + '/' + project + '/' + runs[0].id + '/runmanager');
+      rmData = await rmRes.json();
+    } catch(e) {}
+
     var html = '';
     html += '<div class="stats-row">';
-    html += '<div class="stat-card runs"><div class="value">' + runs.length + '</div><div class="label">Total Runs</div></div>';
-    html += '<div class="stat-card passed"><div class="value">' + totalPassed + '</div><div class="label">Tests Passed</div></div>';
-    html += '<div class="stat-card failed"><div class="value">' + totalFailed + '</div><div class="label">Tests Failed</div></div>';
+    if (rmData && rmData.totalScripts) {
+      html += '<div class="stat-card runs"><div class="value">' + rmData.totalScripts + '</div><div class="label">Total Scripts</div></div>';
+    }
+    html += '<div class="stat-card runs"><div class="value">' + totalTests + '</div><div class="label">Runs</div></div>';
+    html += '<div class="stat-card passed"><div class="value">' + totalPassed + '</div><div class="label">Passed</div></div>';
+    html += '<div class="stat-card failed"><div class="value">' + totalFailed + '</div><div class="label">Failed</div></div>';
+    if (rmData && rmData.didNotRun !== undefined) {
+      html += '<div class="stat-card rate"><div class="value">' + rmData.didNotRun + '</div><div class="label">Did Not Run</div></div>';
+    }
     html += '<div class="stat-card rate"><div class="value">' + passRate + '%</div><div class="label">Pass Rate</div></div>';
     html += '</div>';
 
