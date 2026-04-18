@@ -4,10 +4,10 @@
 
 .DESCRIPTION
     After a Locust run with --csv flag, this script copies the Locust stats files
-    to the QA Dashboard so they appear in the Locust tab.
+    to the QA Dashboard so they appear under Performance Test.
 
 .PARAMETER ScriptName
-    Name of the Locust script (e.g., "WSS_Retiredmem"). Used as the project name.
+    Name of the Locust script (e.g., "WSS_Retiredmem"). Used as the script name.
 
 .PARAMETER CsvPrefix
     Path prefix used with Locust's --csv flag (e.g., "locust-results/WSS_Retiredmem").
@@ -16,11 +16,17 @@
 .PARAMETER DashboardPath
     Path to the QA Dashboard folder (where server.js lives).
 
+.PARAMETER App
+    Application name (e.g., "ESS", "Clarety", "MiAccount").
+
+.PARAMETER Project
+    Project name (e.g., "App_Migration", "ADA", "Maintenance").
+
 .PARAMETER EnvName
     Environment name (e.g., "UAT75"). Stored in run metadata.
 
 .EXAMPLE
-    .\locust-publish.ps1 -ScriptName "WSS_Retiredmem" -CsvPrefix "locust-results/WSS_Retiredmem" -DashboardPath "C:\qa-dashboard" -EnvName "UAT75"
+    .\locust-publish.ps1 -ScriptName "WSS_Retiredmem" -CsvPrefix "locust-results/WSS_Retiredmem" -DashboardPath "C:\qa-dashboard" -App "ESS" -Project "App_Migration" -EnvName "UAT75"
 #>
 
 param(
@@ -33,6 +39,12 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$DashboardPath,
 
+    [Parameter(Mandatory=$true)]
+    [string]$App,
+
+    [Parameter(Mandatory=$true)]
+    [string]$Project,
+
     [Parameter(Mandatory=$false)]
     [string]$EnvName = "unknown"
 )
@@ -40,8 +52,12 @@ param(
 # Generate timestamp for run ID
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 
-# Build destination path: reports/Locust/{ScriptName}/{timestamp}/
-$destDir = Join-Path -Path (Join-Path -Path (Join-Path -Path $DashboardPath -ChildPath "reports") -ChildPath "Locust") -ChildPath $ScriptName
+# Build destination path: reports/Performance/{App}/{Project}/{ScriptName}/{timestamp}/
+$destDir = Join-Path -Path $DashboardPath -ChildPath "reports"
+$destDir = Join-Path -Path $destDir -ChildPath "Performance"
+$destDir = Join-Path -Path $destDir -ChildPath $App
+$destDir = Join-Path -Path $destDir -ChildPath $Project
+$destDir = Join-Path -Path $destDir -ChildPath $ScriptName
 $destDir = Join-Path -Path $destDir -ChildPath $timestamp
 
 # Create directory
@@ -142,5 +158,5 @@ $summary = @{
 $jsonText = $summary | ConvertTo-Json
 [System.IO.File]::WriteAllText((Join-Path -Path $destDir -ChildPath "summary.json"), $jsonText)
 
-Write-Host "[Locust Publish] Published run: $ScriptName / $timestamp"
+Write-Host "[Locust Publish] Published run: $App / $Project / $ScriptName / $timestamp"
 Write-Host "[Locust Publish] Requests: $totalRequests, Failures: $totalFailures, Avg RT: ${avgResponseTime}ms"

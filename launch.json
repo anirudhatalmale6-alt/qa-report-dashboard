@@ -1,6 +1,65 @@
 {
     "version": "0.2.0",
+    "inputs": [
+        {
+            "id": "appName",
+            "type": "pickString",
+            "description": "Select Application",
+            "options": ["ESS", "Clarety", "MiAccount"],
+            "default": "ESS"
+        },
+        {
+            "id": "projectName",
+            "type": "pickString",
+            "description": "Select Project",
+            "options": ["App_Migration", "ADA", "Maintenance"],
+            "default": "App_Migration"
+        },
+        {
+            "id": "envName",
+            "type": "promptString",
+            "description": "Environment Name (e.g., UAT38, UAT75)",
+            "default": "UAT38"
+        }
+    ],
     "configurations": [
+        {
+            "name": "Locust: Run Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "locust",
+            "args": [
+                "-f", "${file}",
+                "--headless",
+                "--users", "1",
+                "--spawn-rate", "1",
+                "--run-time", "120s",
+                "--only-summary",
+                "--env-name", "${input:envName}",
+                "--app", "${input:appName}",
+                "--project", "${input:projectName}",
+                "--csv", "locust-results/${fileBasenameNoExtension}",
+                "--logfile", "logs/${fileBasenameNoExtension}.log"
+            ],
+            "cwd": "${workspaceFolder}/testing/locust",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Locust: Web UI Mode",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "locust",
+            "args": [
+                "-f", "${file}",
+                "--env-name", "${input:envName}",
+                "--app", "${input:appName}",
+                "--project", "${input:projectName}"
+            ],
+            "cwd": "${workspaceFolder}/testing/locust",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
         {
             "name": "Locust: WSS RetiredMem (UAT75)",
             "type": "debugpy",
@@ -14,10 +73,12 @@
                 "--run-time", "60s",
                 "--only-summary",
                 "--env-name", "UAT75",
+                "--app", "ESS",
+                "--project", "App_Migration",
                 "--csv", "locust-results/WSS_Retiredmem",
                 "--logfile", "logs/WSS_Retiredmem.log"
             ],
-            "cwd": "${workspaceFolder}/locust",
+            "cwd": "${workspaceFolder}/testing/locust",
             "console": "integratedTerminal",
             "justMyCode": false
         },
@@ -34,10 +95,12 @@
                 "--run-time", "120s",
                 "--only-summary",
                 "--env-name", "UAT41",
+                "--app", "ESS",
+                "--project", "App_Migration",
                 "--csv", "locust-results/WSS_RetiredMem_AddDependent",
                 "--logfile", "logs/WSS_RetiredMem_AddDependent.log"
             ],
-            "cwd": "${workspaceFolder}/locust",
+            "cwd": "${workspaceFolder}/testing/locust",
             "console": "integratedTerminal",
             "justMyCode": false
         },
@@ -54,10 +117,12 @@
                 "--run-time", "60s",
                 "--only-summary",
                 "--env-name", "UAT75",
+                "--app", "ESS",
+                "--project", "App_Migration",
                 "--csv", "locust-results/ess_test",
                 "--logfile", "logs/ess_test.log"
             ],
-            "cwd": "${workspaceFolder}/locust",
+            "cwd": "${workspaceFolder}/testing/locust",
             "console": "integratedTerminal",
             "justMyCode": false
         },
@@ -74,43 +139,12 @@
                 "--run-time", "60s",
                 "--only-summary",
                 "--env-name", "UAT75",
+                "--app", "Clarety",
+                "--project", "App_Migration",
                 "--csv", "locust-results/clt_test",
                 "--logfile", "logs/clt_test.log"
             ],
-            "cwd": "${workspaceFolder}/locust",
-            "console": "integratedTerminal",
-            "justMyCode": false
-        },
-        {
-            "name": "Locust: Web UI Mode",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "locust",
-            "args": [
-                "-f", "${file}",
-                "--env-name", "UAT75"
-            ],
-            "cwd": "${workspaceFolder}/locust",
-            "console": "integratedTerminal",
-            "justMyCode": false
-        },
-        {
-            "name": "Locust: CSV Stats Export",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "locust",
-            "args": [
-                "-f", "${file}",
-                "--headless",
-                "--users", "1",
-                "--spawn-rate", "1",
-                "--run-time", "120s",
-                "--only-summary",
-                "--env-name", "UAT75",
-                "--csv", "locust-results/${fileBasenameNoExtension}",
-                "--logfile", "logs/${fileBasenameNoExtension}.log"
-            ],
-            "cwd": "${workspaceFolder}/locust",
+            "cwd": "${workspaceFolder}/testing/locust",
             "console": "integratedTerminal",
             "justMyCode": false
         }
