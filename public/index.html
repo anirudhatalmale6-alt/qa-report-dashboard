@@ -975,7 +975,10 @@ async function openPerfStats(app, project, scriptName, runId) {
       return;
     }
 
-    var statsFile = data.files[0];
+    // Prefer the stats file, then failures, then whatever is available
+    var statsFile = data.files.find(function(f) { return f.type === 'stats'; })
+      || data.files.find(function(f) { return f.type === 'failures'; })
+      || data.files[0];
     currentResultsData = { headers: statsFile.headers, rows: statsFile.rows };
     renderResultsTable(statsFile.rows, statsFile.headers);
   } catch(err) {
