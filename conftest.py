@@ -501,8 +501,9 @@ def pytest_sessionfinish(session, exitstatus):
             "didNotRun": did_not_run
         }
 
-        # Save OUTSIDE allure-results/ so Allure doesn't try to parse it
-        runmanager_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "runmanager.json")
+        # Save to current working directory (where pytest is run from)
+        # NOT in allure-results/ (Allure tries to parse all JSON there)
+        runmanager_path = os.path.join(os.getcwd(), "runmanager.json")
         with open(runmanager_path, "w") as f:
             json.dump(runmanager_data, f, indent=2)
 
