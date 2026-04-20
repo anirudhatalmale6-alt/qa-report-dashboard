@@ -299,6 +299,7 @@
   .run-stat .lbl { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
   .run-stat.p .num { color: #3fb950; }
   .run-stat.f .num { color: #f85149; }
+  .run-stat.b .num { color: #d29922; }
   .run-stat.t .num { color: #c9d1d9; }
 
   .run-duration { font-size: 13px; color: #8b949e; margin: 0 16px; min-width: 50px; text-align: center; flex-shrink: 0; }
@@ -544,12 +545,12 @@
       <button class="results-close" onclick="closeResults()">&times;</button>
     </div>
     <div class="results-toolbar">
-      <input type="text" class="results-search" id="resultsSearch" placeholder="Search by TestName, Status, Browser..." oninput="filterResults()">
+      <input type="text" class="results-search" id="resultsSearch" placeholder="Search by TestName, Status, TestType..." oninput="filterResults()">
       <select class="results-filter" id="statusFilter" onchange="filterResults()">
         <option value="">All Statuses</option>
         <option value="Pass">Pass</option>
         <option value="Fail">Fail</option>
-        <option value="Did not run">Did not run</option>
+        <option value="Not Executed">Not Executed</option>
       </select>
     </div>
     <div class="results-count" id="resultsCount"></div>
@@ -617,34 +618,7 @@ async function loadRuns(app, project, el) {
       return;
     }
 
-    var totalPassed = 0, totalFailed = 0, totalTests = 0;
-    runs.forEach(function(r) {
-      totalPassed += r.passed;
-      totalFailed += r.failed;
-      totalTests += r.total;
-    });
-    var passRate = totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(1) : '0.0';
-
-    // Fetch runmanager.json from the latest run for Total Scripts / Did Not Run
-    var rmData = null;
-    try {
-      var rmRes = await fetch('/api/' + app + '/' + project + '/' + runs[0].id + '/runmanager');
-      rmData = await rmRes.json();
-    } catch(e) {}
-
     var html = '';
-    html += '<div class="stats-row">';
-    if (rmData && rmData.totalScripts) {
-      html += '<div class="stat-card runs"><div class="value">' + rmData.totalScripts + '</div><div class="label">Total Scripts</div></div>';
-    }
-    html += '<div class="stat-card runs"><div class="value">' + totalTests + '</div><div class="label">Runs</div></div>';
-    html += '<div class="stat-card passed"><div class="value">' + totalPassed + '</div><div class="label">Passed</div></div>';
-    html += '<div class="stat-card failed"><div class="value">' + totalFailed + '</div><div class="label">Failed</div></div>';
-    if (rmData && rmData.didNotRun !== undefined) {
-      html += '<div class="stat-card rate"><div class="value">' + rmData.didNotRun + '</div><div class="label">Did Not Run</div></div>';
-    }
-    html += '<div class="stat-card rate"><div class="value">' + passRate + '%</div><div class="label">Pass Rate</div></div>';
-    html += '</div>';
 
     html += '<div class="section-header"><div class="section-title">' + app + ' &rsaquo; ' + project.replace('_',' ') + '</div><div class="section-badge">' + runs.length + ' run' + (runs.length !== 1 ? 's' : '') + '</div></div>';
 
@@ -663,8 +637,9 @@ async function loadRuns(app, project, el) {
       html += '<div class="run-info"><div class="run-date">' + date + '</div><div class="run-id">' + run.id + '</div></div>';
       html += '<div class="run-bar"><div class="run-bar-inner"><div class="run-bar-passed" style="width:' + pct + '%"></div><div class="run-bar-failed" style="width:' + fPct + '%"></div></div></div>';
       html += '<div class="run-stats">';
-      html += '<div class="run-stat p"><div class="num">' + run.passed + '</div><div class="lbl">Pass</div></div>';
-      html += '<div class="run-stat f"><div class="num">' + run.failed + '</div><div class="lbl">Fail</div></div>';
+      html += '<div class="run-stat p"><div class="num">' + run.passed + '</div><div class="lbl">Passed</div></div>';
+      html += '<div class="run-stat f"><div class="num">' + run.failed + '</div><div class="lbl">Failed</div></div>';
+      html += '<div class="run-stat b"><div class="num">' + (run.broken || 0) + '</div><div class="lbl">Broken</div></div>';
       html += '<div class="run-stat t"><div class="num">' + run.total + '</div><div class="lbl">Total</div></div>';
       html += '</div>';
       html += '<div class="run-duration">' + duration + '</div>';
@@ -730,20 +705,41 @@ async function openResults(app, project, runId) {
     // Fallback to first sheet if TestPlan not found
     if (!testPlanSheet) testPlanSheet = data.sheets[0];
 
+    // Build member-level stats from data sheets (non-TestPlan sheets)
+    var memberStats = {};
+    data.sheets.forEach(function(sheet) {
+      if (sheet.name === 'TestPlan') return;
+      sheet.rows.forEach(function(row) {
+        var testMethod = row['TestMethod'] || row['TestName'] || '';
+        if (!testMethod) return;
+        if (!memberStats[testMethod]) memberStats[testMethod] = { passed: 0, failed: 0, broken: 0, total: 0 };
+        var st = (row['FinalStatus'] || row['Status'] || '').trim().toLowerCase();
+        memberStats[testMethod].total++;
+        if (st === 'passed' || st === 'pass') memberStats[testMethod].passed++;
+        else if (st === 'failed' || st === 'fail') memberStats[testMethod].failed++;
+        else if (st === 'broken') memberStats[testMethod].broken++;
+      });
+    });
+
     // Map the rows to show only required columns with mapped status
-    var displayHeaders = ['TestName', 'Browser', 'TestType', 'Status', 'Timestamp'];
+    var displayHeaders = ['TestName', 'TestType', 'Status', 'Passed', 'Failed', 'Broken', 'Timestamp'];
     var mappedRows = testPlanSheet.rows.map(function(row) {
       var rawStatus = (row['Status'] || row['FinalStatus'] || '').trim();
       var displayStatus;
       if (rawStatus.toLowerCase() === 'passed' || rawStatus.toLowerCase() === 'pass') displayStatus = 'Pass';
       else if (rawStatus.toLowerCase() === 'failed' || rawStatus.toLowerCase() === 'fail') displayStatus = 'Fail';
-      else displayStatus = 'Did not run';
+      else displayStatus = 'Not Executed';
+
+      var testMethod = row['TestMethod'] || '';
+      var stats = memberStats[testMethod] || { passed: 0, failed: 0, broken: 0, total: 0 };
 
       return {
         'TestName': row['TestName'] || '',
-        'Browser': row['Browser'] || '',
         'TestType': row['TestType'] || '',
         'Status': displayStatus,
+        'Passed': stats.total > 0 ? stats.passed : '',
+        'Failed': stats.total > 0 ? stats.failed : '',
+        'Broken': stats.total > 0 ? stats.broken : '',
         'Timestamp': row['Timestamp'] || row['TimeStamp'] || ''
       };
     });
@@ -774,6 +770,12 @@ function renderResultsTable(rows, headers) {
         if (val === 'Pass') cls = ' class="status-passed"';
         else if (val === 'Fail') cls = ' class="status-failed"';
         else cls = ' class="status-didnotrun"';
+      } else if (h === 'Passed' && val !== '') {
+        cls = ' style="color:#3fb950;font-weight:600"';
+      } else if (h === 'Failed' && val !== '' && val > 0) {
+        cls = ' style="color:#f85149;font-weight:600"';
+      } else if (h === 'Broken' && val !== '' && val > 0) {
+        cls = ' style="color:#d29922;font-weight:600"';
       }
       bodyHtml += '<td' + cls + ' title="' + String(val).replace(/"/g, '&quot;') + '">' + val + '</td>';
     });
