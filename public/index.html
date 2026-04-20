@@ -393,6 +393,7 @@
 
   .status-passed { color: #3fb950; font-weight: 600; }
   .status-failed { color: #f85149; font-weight: 600; }
+  .status-broken { color: #d29922; font-weight: 600; }
   .status-didnotrun { color: #484f58; font-weight: 600; }
   .status-empty { color: #484f58; }
 
@@ -550,6 +551,7 @@
         <option value="">All Statuses</option>
         <option value="Pass">Pass</option>
         <option value="Fail">Fail</option>
+        <option value="Broken">Broken</option>
         <option value="Not Executed">Not Executed</option>
       </select>
     </div>
@@ -728,6 +730,7 @@ async function openResults(app, project, runId) {
       var displayStatus;
       if (rawStatus.toLowerCase() === 'passed' || rawStatus.toLowerCase() === 'pass') displayStatus = 'Pass';
       else if (rawStatus.toLowerCase() === 'failed' || rawStatus.toLowerCase() === 'fail') displayStatus = 'Fail';
+      else if (rawStatus.toLowerCase() === 'broken') displayStatus = 'Broken';
       else displayStatus = 'Not Executed';
 
       var testMethod = row['TestMethod'] || '';
@@ -769,6 +772,7 @@ function renderResultsTable(rows, headers) {
       if (h === 'Status') {
         if (val === 'Pass') cls = ' class="status-passed"';
         else if (val === 'Fail') cls = ' class="status-failed"';
+        else if (val === 'Broken') cls = ' class="status-broken"';
         else cls = ' class="status-didnotrun"';
       } else if (h === 'Passed' && val !== '') {
         cls = ' style="color:#3fb950;font-weight:600"';
