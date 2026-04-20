@@ -52,6 +52,7 @@ def pytest_addoption(parser):
     parser.addoption("--all", action="store_true", help="Run all tests, ignoring Execute flag")
     parser.addoption("--project", default="default", help="Project name for dashboard")
     parser.addoption("--mode", default="uat", help="Run mode: 'prod' for production (single browser, manual login) or 'uat' for UAT (parallel, auto login)")
+    parser.addoption("--headless", action="store_true", default=False, help="Run browsers in headless mode (no visible window)")
 
 #######################
 # Environment Config
@@ -234,6 +235,10 @@ def prod_browser(request, playwright_instance, env_config):
         yield None
         return
 
+    is_headless = request.config.getoption("--headless")
+    slow = 0 if is_headless else 2000
+    launch_args = [] if is_headless else ["--start-maximized"]
+
     # Read browser from TestPlan Excel Browser column (first row)
     browser_name = "msedge"  # default
     try:
@@ -243,35 +248,35 @@ def prod_browser(request, playwright_instance, env_config):
             browser_name = excel_browser
     except Exception:
         pass
-    logger.info(f"Production mode: Browser from Excel -> '{browser_name}'")
+    logger.info(f"Production mode: Browser from Excel -> '{browser_name}', headless={is_headless}")
 
     if browser_name == "msedge":
         browser = playwright_instance.chromium.launch(
             channel="msedge",
-            headless=False,
-            slow_mo=2000,
-            args=["--start-maximized"]
+            headless=is_headless,
+            slow_mo=slow,
+            args=launch_args
         )
     elif browser_name == "chrome":
         browser = playwright_instance.chromium.launch(
             channel="chrome",
-            headless=False,
-            slow_mo=2000,
-            args=["--start-maximized"]
+            headless=is_headless,
+            slow_mo=slow,
+            args=launch_args
         )
     elif browser_name in ("chromium", "firefox", "webkit"):
         browser = getattr(playwright_instance, browser_name).launch(
-            headless=False,
-            slow_mo=2000,
-            args=["--start-maximized"] if browser_name == "chromium" else []
+            headless=is_headless,
+            slow_mo=slow,
+            args=launch_args if browser_name == "chromium" else []
         )
     else:
         # Default to Edge
         browser = playwright_instance.chromium.launch(
             channel="msedge",
-            headless=False,
-            slow_mo=2000,
-            args=["--start-maximized"]
+            headless=is_headless,
+            slow_mo=slow,
+            args=launch_args
         )
         browser_name = "msedge"
     context = browser.new_context(accept_downloads=True)
@@ -363,18 +368,21 @@ def test_context(request, env_config, playwright_instance, prod_browser):
             # Do NOT close browser - it's session-scoped
         else:
             # UAT MODE: New browser per test (supports parallel execution)
+            is_headless = request.config.getoption("--headless")
+            slow = 0 if is_headless else 2000
+            launch_args = [] if is_headless else ["--start-maximized"]
             browser_name = row.get("Browser", "chromium").lower()
             browser = None
             try:
                 if browser_name == "msedge":
                     browser = playwright_instance.chromium.launch(
                         channel="msedge",
-                        headless=False,
-                        slow_mo=2000,
-                        args=["--start-maximized"]
+                        headless=is_headless,
+                        slow_mo=slow,
+                        args=launch_args
                     )
                 else:
-                    browser = getattr(playwright_instance, browser_name).launch(headless=False, slow_mo=2000, args=["--start-maximized"])
+                    browser = getattr(playwright_instance, browser_name).launch(headless=is_headless, slow_mo=slow, args=launch_args)
                 context = browser.new_context(accept_downloads=True)
                 context.set_default_timeout(60000)
                 context.set_default_navigation_timeout(60000)
