@@ -88,6 +88,7 @@ def expand_data_references(data_ref, sheet_name, file_path):
       - "ALL"       -> reads all DataReference values from the sheet
       - "1-4000"    -> expands to DataRef1, DataRef2, ..., DataRef4000
       - "500-1000"  -> expands to DataRef500, DataRef501, ..., DataRef1000
+      - "1,45,62,99" -> expands to DataRef1, DataRef45, DataRef62, DataRef99
       - "DataRef5"  -> single value, returned as-is (existing behavior)
     """
     data_ref_str = str(data_ref).strip()
@@ -112,7 +113,19 @@ def expand_data_references(data_ref, sheet_name, file_path):
         logger.info(f"Expanded range {data_ref_str} -> {len(refs)} DataReferences (DataRef{start} to DataRef{end})")
         return refs
 
-    # Case 3: Single specific DataReference (existing behavior)
+    # Case 3: Comma-separated specific rows like "1,45,62,99"
+    if ',' in data_ref_str:
+        parts = [p.strip() for p in data_ref_str.split(',') if p.strip()]
+        refs = []
+        for part in parts:
+            if part.isdigit():
+                refs.append(f"DataRef{part}")
+            else:
+                refs.append(part)
+        logger.info(f"Expanded comma list {data_ref_str} -> {len(refs)} DataReferences: {refs}")
+        return refs
+
+    # Case 4: Single specific DataReference (existing behavior)
     return [data_ref_str]
 
 
