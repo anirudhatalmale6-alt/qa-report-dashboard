@@ -29,16 +29,17 @@ logger.setLevel(logging.INFO)
 file_handler = RotatingFileHandler(
     LOG_FILE, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT
 )
-file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+file_handler.setFormatter(logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
 
 # Create a console handler
 console_handler = logging.StreamHandler()
-console_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+console_handler.setFormatter(logging.Formatter(
+    "%(asctime)s - %(levelname)s - %(message)s"))
 
 # Add handlers to the logger
 logger.addHandler(file_handler)
 logger.addHandler(console_handler)
-
 
 
 #######################
@@ -46,17 +47,26 @@ logger.addHandler(console_handler)
 #######################
 def pytest_addoption(parser):
     logger.info("Adding custom command line options for pytest")
-    parser.addoption("--env", action="store", default="prod", help="Environment to run tests against")
-    parser.addoption("--ui", action="store_true", help="Run all UI tests, ignoring Execute flag")
-    parser.addoption("--api", action="store_true", help="Run all API tests, ignoring Execute flag")
-    parser.addoption("--all", action="store_true", help="Run all tests, ignoring Execute flag")
-    parser.addoption("--project", default="default", help="Project name for dashboard")
-    parser.addoption("--mode", default="uat", help="Run mode: 'prod' for production (single browser, manual login) or 'uat' for UAT (parallel, auto login)")
-    parser.addoption("--headless", action="store_true", default=False, help="Run browsers in headless mode (no visible window)")
+    parser.addoption("--env", action="store", default="prod",
+                     help="Environment to run tests against")
+    parser.addoption("--ui", action="store_true",
+                     help="Run all UI tests, ignoring Execute flag")
+    parser.addoption("--api", action="store_true",
+                     help="Run all API tests, ignoring Execute flag")
+    parser.addoption("--all", action="store_true",
+                     help="Run all tests, ignoring Execute flag")
+    parser.addoption("--project", default="default",
+                     help="Project name for dashboard")
+    parser.addoption("--mode", default="uat",
+                     help="Run mode: 'prod' for production (single browser, manual login) or 'uat' for UAT (parallel, auto login)")
+    parser.addoption("--headless", action="store_true", default=False,
+                     help="Run browsers in headless mode (no visible window)")
 
 #######################
 # Environment Config
 #######################
+
+
 @pytest.fixture(scope="session")
 def env_config(request) -> Dict[str, str]:
     env = request.config.getoption("--env")
@@ -97,9 +107,11 @@ def expand_data_references(data_ref, sheet_name, file_path):
     if data_ref_str.upper() == "ALL":
         df = pd.read_excel(file_path, sheet_name=sheet_name)
         if 'DataReference' not in df.columns:
-            raise KeyError(f"'DataReference' column missing in sheet '{sheet_name}'")
+            raise KeyError(
+                f"'DataReference' column missing in sheet '{sheet_name}'")
         refs = df['DataReference'].dropna().astype(str).str.strip().tolist()
-        logger.info(f"Expanded ALL -> {len(refs)} DataReferences from sheet '{sheet_name}'")
+        logger.info(
+            f"Expanded ALL -> {len(refs)} DataReferences from sheet '{sheet_name}'")
         return refs
 
     # Case 2: Numeric range like "1-4000" or "500-1000"
@@ -110,7 +122,8 @@ def expand_data_references(data_ref, sheet_name, file_path):
         if start > end:
             start, end = end, start
         refs = [f"DataRef{i}" for i in range(start, end + 1)]
-        logger.info(f"Expanded range {data_ref_str} -> {len(refs)} DataReferences (DataRef{start} to DataRef{end})")
+        logger.info(
+            f"Expanded range {data_ref_str} -> {len(refs)} DataReferences (DataRef{start} to DataRef{end})")
         return refs
 
     # Case 3: Comma-separated specific rows like "1,45,62,99"
@@ -122,7 +135,8 @@ def expand_data_references(data_ref, sheet_name, file_path):
                 refs.append(f"DataRef{part}")
             else:
                 refs.append(part)
-        logger.info(f"Expanded comma list {data_ref_str} -> {len(refs)} DataReferences: {refs}")
+        logger.info(
+            f"Expanded comma list {data_ref_str} -> {len(refs)} DataReferences: {refs}")
         return refs
 
     # Case 4: Single specific DataReference (existing behavior)
@@ -175,11 +189,14 @@ def pytest_generate_tests(metafunc):
                 expanded['DataReference'] = ref
                 expanded_records.append(expanded)
 
-        logger.info(f"Total parametrized tests after expansion: {len(expanded_records)}")
+        logger.info(
+            f"Total parametrized tests after expansion: {len(expanded_records)}")
 
         # Build stable records for consistent Allure historyId
-        stable_fields = ['TestName', 'TestMethod', 'DataReference', 'SheetName', 'TestType', 'Browser', 'Execute']
-        stable_records = [{k: r.get(k) for k in stable_fields if k in r} for r in expanded_records]
+        stable_fields = ['TestName', 'TestMethod', 'DataReference',
+                         'SheetName', 'TestType', 'Browser', 'Execute']
+        stable_records = [
+            {k: r.get(k) for k in stable_fields if k in r} for r in expanded_records]
         metafunc.parametrize("test_context", stable_records, indirect=True)
 
 
@@ -217,10 +234,12 @@ def pytest_sessionstart(session):
             init_results_csv(sn, TEST_PLAN_PATH, data_refs=refs)
 
         # Initialize TestPlan CSV (filtered to Execute='Yes' rows only)
-        yes_test_refs = [str(r).strip() for r in exec_df['DataReference'].dropna().tolist()]
+        yes_test_refs = [str(r).strip()
+                         for r in exec_df['DataReference'].dropna().tolist()]
         init_results_csv('TestPlan', TEST_PLAN_PATH, data_refs=yes_test_refs)
 
-        logger.info(f"Initialized results CSVs for sheets: {list(sheet_data_refs.keys())} (Execute=Yes only)")
+        logger.info(
+            f"Initialized results CSVs for sheets: {list(sheet_data_refs.keys())} (Execute=Yes only)")
     except Exception as e:
         logger.warning(f"Could not initialize results CSVs: {e}")
 
@@ -250,7 +269,10 @@ def prod_browser(request, playwright_instance, env_config):
 
     is_headless = request.config.getoption("--headless")
     slow = 0 if is_headless else 2000
-    launch_args = [] if is_headless else ["--start-maximized"]
+    launch_args = [] if is_headless else [
+        "--disable-blink-features=AutomationControlled",
+        "--start-maximized"
+    ]
 
     # Read browser from TestPlan Excel Browser column (first row)
     browser_name = "msedge"  # default
@@ -261,15 +283,30 @@ def prod_browser(request, playwright_instance, env_config):
             browser_name = excel_browser
     except Exception:
         pass
-    logger.info(f"Production mode: Browser from Excel -> '{browser_name}', headless={is_headless}")
+    logger.info(
+        f"Production mode: Browser from Excel -> '{browser_name}', headless={is_headless}")
+
+    browser = None  # only used for non-persistent context paths
 
     if browser_name == "msedge":
-        browser = playwright_instance.chromium.launch(
+        # Persistent context - avoids automation detection
+        context = playwright_instance.chromium.launch_persistent_context(
+            user_data_dir=r"C:\temp\playwright_edge_profile",
             channel="msedge",
-            headless=is_headless,
+            headless=False,
             slow_mo=slow,
-            args=launch_args
+            accept_downloads=True,
+            viewport=None,
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0",
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--start-maximized"
+            ]
         )
+        page = context.pages[0] if context.pages else context.new_page()
+        page.add_init_script(
+            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
     elif browser_name == "chrome":
         browser = playwright_instance.chromium.launch(
             channel="chrome",
@@ -277,12 +314,26 @@ def prod_browser(request, playwright_instance, env_config):
             slow_mo=slow,
             args=launch_args
         )
+        context = browser.new_context(
+            accept_downloads=True,
+            viewport=None,
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0"
+        )
+        page = context.new_page()
+
     elif browser_name in ("chromium", "firefox", "webkit"):
         browser = getattr(playwright_instance, browser_name).launch(
             headless=is_headless,
             slow_mo=slow,
             args=launch_args if browser_name == "chromium" else []
         )
+        context = browser.new_context(
+            accept_downloads=True,
+            viewport=None,
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0"
+        )
+        page = context.new_page()
+
     else:
         # Default to Edge
         browser = playwright_instance.chromium.launch(
@@ -291,11 +342,24 @@ def prod_browser(request, playwright_instance, env_config):
             slow_mo=slow,
             args=launch_args
         )
-        browser_name = "msedge"
-    context = browser.new_context(accept_downloads=True)
+        context = browser.new_context(
+            accept_downloads=True,
+            viewport=None,
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0"
+        )
+        page = context.new_page()
+
+    # Event handlers for debugging
+    def handle_new_page(popup):
+        logger.info(f"New page opened: {popup.url}")
+        popup.on("request", lambda r: print(f"  >> {r.method} {r.url}"))
+        popup.on("response", lambda r: print(f"  << {r.status} {r.url}"))
+        popup.on("console", lambda r: print(f"  [console] {r.type} {r.text}"))
+        popup.on("pageerror", lambda r: print(f"  [pageerror] {r}"))
+
+    context.on("page", handle_new_page)
     context.set_default_timeout(120000)
     context.set_default_navigation_timeout(120000)
-    page = context.new_page()
 
     # Navigate to base URL so user can login
     base_url = env_config.get("base_url", "")
@@ -308,13 +372,25 @@ def prod_browser(request, playwright_instance, env_config):
     print("=" * 60)
     print("The browser is open. Please:")
     print("  1. Complete the OTP login manually")
-    print("  2. Wait until the page is fully loaded")
-    print("  3. Press ENTER here to continue execution")
+    print("  2. Navigate to the actual application page")
+    print("  3. Make sure the application is fully loaded")
+    print("  4. Press ENTER here to continue execution")
     print("=" * 60)
     input("Press ENTER after login is complete...")
     print("Resuming test execution...\n")
 
-    logger.info("Production mode: Browser session started, manual login complete")
+    # After login, MiLogin may open the app in a NEW tab.
+    # Switch to the last opened tab (which has the actual app).
+    all_pages = context.pages
+    if len(all_pages) > 1:
+        page = all_pages[-1]
+        logger.info(
+            f"Switched to latest tab ({len(all_pages)} tabs open): {page.url}")
+    else:
+        logger.info(f"Single tab open: {page.url}")
+
+    logger.info(
+        "Production mode: Browser session started, manual login complete")
 
     yield {
         "browser": browser,
@@ -326,9 +402,14 @@ def prod_browser(request, playwright_instance, env_config):
 
     # Cleanup at end of session
     try:
-        browser.close()
+        context.close()
     except Exception:
         pass
+    if browser:
+        try:
+            browser.close()
+        except Exception:
+            pass
 
 
 #######################
@@ -350,21 +431,26 @@ def test_context(request, env_config, playwright_instance, prod_browser):
     }
     print(test_info["env"])
     print(test_info["browser"])
-    logger.info(f"Running test: {test_type} : {test_info['test_name']} ({test_info['test_method']}) - DataRef: {test_info['data_ref']}")
+    logger.info(
+        f"Running test: {test_type} : {test_info['test_name']} ({test_info['test_method']}) - DataRef: {test_info['data_ref']}")
     test_data = {}
     try:
-        test_data = load_test_data(row["SheetName"], row["DataReference"], TEST_PLAN_PATH)
+        test_data = load_test_data(
+            row["SheetName"], row["DataReference"], TEST_PLAN_PATH)
         test_data['BR'] = test_info["browser"]
     except Exception as e:
         logger.error(f"Could not load test data: {e}")
 
-    logger.info(f"[{test_info['test_name']}] Loaded Test data: {row['DataReference']} from sheet {row['SheetName']}")
+    logger.info(
+        f"[{test_info['test_name']}] Loaded Test data: {row['DataReference']} from sheet {row['SheetName']}")
     test_info["test_data"] = test_data
 
     # Write TestMethod to results CSV so you can filter results by method
     try:
-        write_to_cell(row["DataReference"], 'TestMethod', row.get("TestMethod", ""), row["SheetName"])
-        write_to_cell(row["DataReference"], 'TestName', row.get("TestName", ""), row["SheetName"])
+        write_to_cell(row["DataReference"], 'TestMethod',
+                      row.get("TestMethod", ""), row["SheetName"])
+        write_to_cell(row["DataReference"], 'TestName',
+                      row.get("TestName", ""), row["SheetName"])
     except Exception:
         pass
 
@@ -395,7 +481,8 @@ def test_context(request, env_config, playwright_instance, prod_browser):
                         args=launch_args
                     )
                 else:
-                    browser = getattr(playwright_instance, browser_name).launch(headless=is_headless, slow_mo=slow, args=launch_args)
+                    browser = getattr(playwright_instance, browser_name).launch(
+                        headless=is_headless, slow_mo=slow, args=launch_args)
                 context = browser.new_context(accept_downloads=True)
                 context.set_default_timeout(60000)
                 context.set_default_navigation_timeout(60000)
@@ -512,7 +599,8 @@ def pytest_sessionfinish(session, exitstatus):
     try:
         df_full = pd.read_excel(TEST_PLAN_PATH, sheet_name='TestPlan')
         total_scripts = len(df_full)
-        executed_df = df_full[df_full['Execute'].str.strip().str.lower() == 'yes']
+        executed_df = df_full[df_full['Execute'].str.strip(
+        ).str.lower() == 'yes']
         executed_count = len(executed_df)
         did_not_run = total_scripts - executed_count
 
@@ -528,7 +616,8 @@ def pytest_sessionfinish(session, exitstatus):
         with open(runmanager_path, "w") as f:
             json.dump(runmanager_data, f, indent=2)
 
-        print(f"✔ runmanager.json added (Total: {total_scripts}, Executed: {executed_count}, Did Not Run: {did_not_run})")
+        print(
+            f"✔ runmanager.json added (Total: {total_scripts}, Executed: {executed_count}, Did Not Run: {did_not_run})")
     except Exception as e:
         print(f"⚠ Could not generate runmanager.json: {e}")
 
@@ -539,7 +628,8 @@ def pytest_sessionfinish(session, exitstatus):
     allure_script_path = os.path.join(current_dir, 'allure.ps1')
 
     if not os.path.exists(allure_script_path):
-        print(f"\nERROR: Allure PowerShell script not found at: {allure_script_path}")
+        print(
+            f"\nERROR: Allure PowerShell script not found at: {allure_script_path}")
         return
 
     try:
@@ -549,7 +639,6 @@ def pytest_sessionfinish(session, exitstatus):
         print("\n✔ Allure report generated using allure.ps1")
     except Exception as e:
         print(f"\nFailed to generate Allure report using allure.ps1: {e}")
-
 
 
 @pytest.fixture(autouse=True)
