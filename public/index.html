@@ -768,6 +768,11 @@ function renderResultsTable(rows, headers) {
     bodyHtml += '<tr>';
     headers.forEach(function(h) {
       var val = row[h] || '';
+      var displayVal = val;
+      var msColumns = ["Median Response Time", "Average Response Time", "Min Response Time", "Max Response Time"];
+      if (msColumns.indexOf(h) !== -1 && val !== '' && !isNaN(Number(val))) {
+        displayVal = (Number(val) / 1000).toFixed(3) + 's';
+      }
       var cls = '';
       if (h === 'Status') {
         if (val === 'Pass') cls = ' class="status-passed"';
@@ -781,7 +786,7 @@ function renderResultsTable(rows, headers) {
       } else if (h === 'Broken' && val !== '' && val > 0) {
         cls = ' style="color:#d29922;font-weight:600"';
       }
-      bodyHtml += '<td' + cls + ' title="' + String(val).replace(/"/g, '&quot;') + '">' + val + '</td>';
+      bodyHtml += '<td' + cls + ' title="' + String(val).replace(/"/g, '&quot;') + '">' + displayVal + '</td>';
     });
     bodyHtml += '</tr>';
   });
@@ -968,7 +973,7 @@ async function loadPerfRuns(app, project, scriptName, el) {
       html += '<div class="run-stats">';
       html += '<div class="run-stat p"><div class="num">' + run.totalRequests + '</div><div class="lbl">Reqs</div></div>';
       html += '<div class="run-stat f"><div class="num">' + run.totalFailures + '</div><div class="lbl">Fail</div></div>';
-      html += '<div class="run-stat t"><div class="num">' + run.avgResponseTime + 'ms</div><div class="lbl">Avg RT</div></div>';
+      html += '<div class="run-stat t"><div class="num">' + (Number(run.avgResponseTime) / 1000).toFixed(3) + 's</div><div class="lbl">Avg RT</div></div>';
       html += '</div>';
       html += '<div class="run-duration">' + run.passRate + '%</div>';
       html += '<div class="run-action"><button class="btn-results" onclick="openPerfStats(\'' + app + '\',\'' + project + '\',\'' + scriptName + '\',\'' + run.id + '\')">&#9776; Stats</button><button class="btn-results" onclick="downloadPerfCSV(\'' + app + '\',\'' + project + '\',\'' + scriptName + '\',\'' + run.id + '\')">&#11015; CSV</button></div>';
