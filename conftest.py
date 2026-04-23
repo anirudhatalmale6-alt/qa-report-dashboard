@@ -379,13 +379,21 @@ def prod_browser(request, playwright_instance, env_config):
     input("Press ENTER after login is complete...")
     print("Resuming test execution...\n")
 
+    # input() blocks Python's thread which also blocks Playwright's event loop.
+    # New tab events from MiLogin "Launch Service" may not be processed yet.
+    # Use wait_for_timeout to let Playwright's event loop catch up.
+    page.wait_for_timeout(3000)
+
     # After login, MiLogin may open the app in a NEW tab.
     # Switch to the last opened tab (which has the actual app).
     all_pages = context.pages
+    logger.info(f"Tabs detected after login: {len(all_pages)}")
+    for i, p in enumerate(all_pages):
+        logger.info(f"  Tab {i}: {p.url}")
+
     if len(all_pages) > 1:
         page = all_pages[-1]
-        logger.info(
-            f"Switched to latest tab ({len(all_pages)} tabs open): {page.url}")
+        logger.info(f"Switched to latest tab: {page.url}")
     else:
         logger.info(f"Single tab open: {page.url}")
 
