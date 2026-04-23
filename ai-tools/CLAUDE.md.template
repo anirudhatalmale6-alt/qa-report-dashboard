@@ -1,0 +1,52 @@
+# QA Automation Framework - Claude Code Context
+
+## Project Structure
+This is a pytest + Playwright test automation framework for Michigan ORS applications (ESS, WSS, MIORS, CLT, Clarety).
+
+## Framework Pattern
+- Tests are registered with `@register_test("test_name")` decorator from `lib/test_registry.py`
+- Test data comes from Excel RunManager.xlsx via `lib/test_data_manager.py`
+- Each test receives an `Application` object with `.ui`, `.api`, `.db` layers
+- Page objects live in `application/ui/` (e.g., `ess_login_page.py`)
+- Locators live in `application/ui/` (e.g., `ess_page_locators.py`)
+- Tests are organized by app: `tests/ess/`, `tests/wss/`, `tests/miors/`, etc.
+
+## How to Write a New Test
+```python
+from lib.test_registry import register_test
+from application.application import Application
+
+@register_test("test_my_new_test")
+def test_my_new_test(app: Application):
+    app.ui.launch_ESSUrl(app.env["base_url"])
+    app.ui.login_page.loginESS(app.data, app.sheet_name)
+    # ... test steps ...
+```
+
+## Locator Pattern
+```python
+class ESSPageLocators:
+    SOME_BUTTON = "css=input[type='submit'][value='Submit']"
+    SOME_LINK = "text=Work on Reports"
+    SOME_TABLE = "css=table.dataTable"
+```
+
+## Key Files
+- `conftest.py` - Fixtures, browser setup, test parametrization
+- `lib/constants.py` - URLs, credentials, file paths
+- `lib/test_data_manager.py` - Excel read/write operations
+- `lib/actions.py` - Common helper functions
+- `application/application.py` - Main Application facade
+
+## Running Tests
+```
+pytest tests/test_run_manager.py --env=uat25 --mode=uat
+pytest tests/test_run_manager.py --env=prod --mode=prod
+```
+
+## When Generating Locators
+- Prefer CSS selectors over XPath for simple cases
+- Use `text=` for link/button text matching
+- Use `css=` prefix for CSS selectors
+- For tables, use nth-child or :has-text() pseudo-selectors
+- The app is Struts-based, so IDs may contain dynamic prefixes
