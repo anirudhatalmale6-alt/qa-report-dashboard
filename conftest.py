@@ -389,6 +389,15 @@ def prod_browser(request, playwright_instance, env_config):
     else:
         logger.info(f"Single tab open: {page.url}")
 
+    # Bring the app tab to front and wait for it to fully load
+    page.bring_to_front()
+    try:
+        page.wait_for_load_state("domcontentloaded", timeout=60000)
+        page.wait_for_load_state("networkidle", timeout=60000)
+    except Exception:
+        logger.warning("Page load wait timed out, continuing anyway")
+
+    logger.info(f"Page ready: {page.url}")
     logger.info(
         "Production mode: Browser session started, manual login complete")
 
