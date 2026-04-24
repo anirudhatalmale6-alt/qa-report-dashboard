@@ -90,9 +90,9 @@ EMAIL_CC = "DTMB-AST-Test-Team; Meyers, Amber (DTMB); Potter, Joshua (DTMB); Wil
 def run_locust_scripts():
     """Run the 3 Locust environment check scripts."""
     scripts = [
-        ("EnvChecks_Clarety.py", "10m"),
-        ("EnvChecks_ESS.py", "10m"),
-        ("EnvChecks_WSS.py", "10m"),
+        ("EnvChecks_Clarety.py", "30m"),
+        ("EnvChecks_ESS.py", "30m"),
+        ("EnvChecks_WSS.py", "30m"),
     ]
 
     processes = []
