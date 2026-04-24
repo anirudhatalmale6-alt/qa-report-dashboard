@@ -395,6 +395,22 @@
   .status-failed { color: #f85149; font-weight: 600; }
   .status-broken { color: #d29922; font-weight: 600; }
   .status-didnotrun { color: #484f58; font-weight: 600; }
+
+  /* Environment Dates table */
+  .env-dates-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .env-dates-table th { background: #4472C4; color: #fff; padding: 8px 12px; text-align: center; border: 1px solid #30363d; font-weight: 600; }
+  .env-dates-table td { padding: 6px 12px; border: 1px solid #30363d; text-align: center; }
+  .env-dates-table tr:hover { background: #1c2129; }
+  .env-dates-table .env-name { font-weight: 600; text-align: left; color: #f0f6fc; }
+  .env-dates-table .env-assignment { text-align: left; color: #8b949e; font-size: 12px; }
+  .env-date-ok { color: #3fb950; font-weight: 600; }
+  .env-date-bad { color: #f85149; font-weight: 600; }
+  .env-status-ok { color: #3fb950; font-weight: 600; }
+  .env-status-down { color: #f85149; font-weight: 600; }
+  .env-status-warn { color: #d29922; font-weight: 600; }
+  .env-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .env-date-selector { background: #21262d; color: #e1e4e8; border: 1px solid #30363d; padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+  .env-timestamp { color: #8b949e; font-size: 12px; }
   .status-empty { color: #484f58; }
 
   /* Report Modal (Allure iframe popup) */
@@ -521,6 +537,9 @@
       <div id="perf-miaccount-maint-scripts" style="padding:6px 20px 6px 56px;color:#484f58;font-size:12px;">No scripts yet</div>
     </div>
   </div>
+
+  <div class="sidebar-label">Environment</div>
+  <div class="nav-l1" onclick="loadEnvDates(this)" style="color:#58a6ff;">Environment Dates</div>
 </nav>
 
 <div class="main">
@@ -1053,6 +1072,115 @@ async function downloadPerfCSV(app, project, scriptName, runId) {
   } catch(err) {
     alert('Error downloading CSV: ' + err.message);
   }
+}
+
+// ===========================
+// Environment Dates
+// ===========================
+async function loadEnvDates(el) {
+  // Deselect all nav items
+  document.querySelectorAll('.nav-l2').forEach(function(n) { n.classList.remove('active'); });
+  if (el) el.classList.add('active');
+
+  var breadcrumb = document.getElementById('breadcrumb');
+  var content = document.getElementById('content');
+  breadcrumb.innerHTML = '<span>Environment Dates</span>';
+  content.innerHTML = '<div class="loading"><div class="spinner"></div> Loading environment dates...</div>';
+
+  try {
+    var histRes = await fetch('/api/env-dates/history');
+    var dates = await histRes.json();
+
+    var latestRes = await fetch('/api/env-dates/latest');
+    var data = await latestRes.json();
+
+    if (!data || !data.environments) {
+      content.innerHTML = '<div style="padding:40px;text-align:center;color:#8b949e;">' +
+        '<div style="font-size:48px;margin-bottom:16px;">&#128197;</div>' +
+        '<h3 style="color:#f0f6fc;margin-bottom:8px;">No Environment Dates Available</h3>' +
+        '<p>Run daily_env_check.py with --publish-dashboard flag to publish data here.</p>' +
+        '<code style="display:block;margin-top:12px;background:#161b22;padding:12px;border-radius:6px;color:#58a6ff;">' +
+        'python daily_env_check.py --publish-dashboard "path/to/dashboard/reports"</code></div>';
+      return;
+    }
+
+    var selectHtml = '<select class="env-date-selector" onchange="loadEnvDatesByDate(this.value)">';
+    selectHtml += '<option value="latest">Latest (' + data.date + ')</option>';
+    for (var i = 0; i < dates.length; i++) {
+      if (dates[i] !== data.date) {
+        selectHtml += '<option value="' + dates[i] + '">' + dates[i] + '</option>';
+      }
+    }
+    selectHtml += '</select>';
+
+    renderEnvDatesTable(data, selectHtml);
+  } catch(err) {
+    content.innerHTML = '<div style="padding:40px;color:#f85149;text-align:center;">Error loading environment dates: ' + err.message + '</div>';
+  }
+}
+
+async function loadEnvDatesByDate(date) {
+  var content = document.getElementById('content');
+  try {
+    var url = date === 'latest' ? '/api/env-dates/latest' : '/api/env-dates/' + date;
+    var res = await fetch(url);
+    var data = await res.json();
+    if (!data) { content.innerHTML = '<div style="padding:40px;color:#8b949e;">No data for this date.</div>'; return; }
+
+    var selector = document.querySelector('.env-date-selector');
+    var selectHtml = selector ? selector.outerHTML : '';
+    renderEnvDatesTable(data, selectHtml);
+  } catch(err) {
+    content.innerHTML = '<div style="padding:40px;color:#f85149;">Error: ' + err.message + '</div>';
+  }
+}
+
+function renderEnvDatesTable(data, selectHtml) {
+  var content = document.getElementById('content');
+
+  function dateClass(val) {
+    if (!val || val === 'N/A' || val === '#N/A' || val.indexOf('1900') !== -1) return 'env-date-bad';
+    return 'env-date-ok';
+  }
+  function statusClass(val) {
+    var v = (val || '').toLowerCase().trim();
+    if (v === 'ok') return 'env-status-ok';
+    if (v === 'down' || v === 'n/a' || v === '') return 'env-status-down';
+    if (v.indexOf('milogin') !== -1) return 'env-status-warn';
+    return 'env-status-ok';
+  }
+
+  var html = '<div class="env-header-row">' +
+    '<div><div class="section-title">Environment Dates</div>' +
+    '<div class="env-timestamp">Last updated: ' + data.timestamp + '</div></div>' +
+    '<div>' + selectHtml + '</div></div>';
+
+  html += '<table class="env-dates-table"><thead><tr>' +
+    '<th>Environment</th>' +
+    '<th>Business Date</th>' +
+    '<th>MIORS Date</th>' +
+    '<th>WSS Status</th>' +
+    '<th>ESS Status</th>' +
+    '<th>Assignment</th>' +
+    '<th>Rules Engine</th>' +
+    '</tr></thead><tbody>';
+
+  var envs = data.environments;
+  for (var i = 0; i < envs.length; i++) {
+    var e = envs[i];
+    html += '<tr>' +
+      '<td class="env-name">' + e.env + '</td>' +
+      '<td class="' + dateClass(e.businessDate) + '">' + e.businessDate + '</td>' +
+      '<td class="' + dateClass(e.miorsDate) + '">' + e.miorsDate + '</td>' +
+      '<td class="' + statusClass(e.wssStatus) + '">' + e.wssStatus + '</td>' +
+      '<td class="' + statusClass(e.essStatus) + '">' + e.essStatus + '</td>' +
+      '<td class="env-assignment">' + e.assignment + '</td>' +
+      '<td class="' + dateClass(i === 0 ? data.rulesEngineDate : '') + '">' + (i === 0 ? data.rulesEngineDate : '') + '</td>' +
+      '</tr>';
+  }
+
+  html += '</tbody></table>';
+  content.innerHTML = html;
 }
 </script>
 

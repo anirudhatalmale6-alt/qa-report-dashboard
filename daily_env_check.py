@@ -151,8 +151,8 @@ def run_sql_queries():
             continue
 
         env = parts[0].strip()
-        server = parts[1].strip()
-        db = parts[2].strip()
+        db = parts[-1].strip()
+        server = ','.join(parts[1:-1]).strip()
 
         # Reconnect if server changed
         if server != current_server:
@@ -394,6 +394,53 @@ def send_outlook_email(html_body, dry_run=False):
 
 
 # =============================================================================
+# STEP 6 (Optional): Publish to Dashboard
+# =============================================================================
+
+def publish_to_dashboard(dashboard_reports_dir, business_dates, mior_status,
+                         wss_status, ess_status, rules_engine_date):
+    """Save env_dates.json to the dashboard reports directory."""
+    import json
+
+    env_dates_dir = os.path.join(dashboard_reports_dir, "EnvDates")
+    os.makedirs(env_dates_dir, exist_ok=True)
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    environments = []
+    for env in ENV_ORDER:
+        environments.append({
+            "env": env,
+            "businessDate": business_dates.get(env, "N/A"),
+            "miorsDate": parse_miors_date(mior_status.get(env, "")),
+            "wssStatus": wss_status.get(env, "N/A"),
+            "essStatus": ess_status.get(env, "N/A"),
+            "assignment": ASSIGNMENTS.get(env, ""),
+        })
+
+    data = {
+        "date": today,
+        "timestamp": timestamp,
+        "rulesEngineDate": rules_engine_date,
+        "environments": environments,
+    }
+
+    # Save as latest (always overwritten)
+    latest_path = os.path.join(env_dates_dir, "latest.json")
+    with open(latest_path, 'w') as f:
+        json.dump(data, f, indent=2)
+
+    # Save dated copy for history
+    dated_path = os.path.join(env_dates_dir, f"env_dates_{today}.json")
+    with open(dated_path, 'w') as f:
+        json.dump(data, f, indent=2)
+
+    print(f"Published to dashboard: {latest_path}")
+    print(f"History saved: {dated_path}")
+
+
+# =============================================================================
 # MAIN
 # =============================================================================
 
@@ -402,6 +449,8 @@ def main():
     parser.add_argument("--skip-locust", action="store_true", help="Skip running Locust scripts, use existing .txt files")
     parser.add_argument("--skip-sql", action="store_true", help="Skip SQL queries, use existing sql_output.txt")
     parser.add_argument("--dry-run", action="store_true", help="Build email but don't send (save as HTML)")
+    parser.add_argument("--publish-dashboard", action="store", metavar="DIR",
+                        help="Save env_dates.json to the dashboard reports directory for web display")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -447,6 +496,11 @@ def main():
     # Step 5: Send email
     print("[Step 5/5] Sending email...")
     send_outlook_email(html, dry_run=args.dry_run)
+
+    # Optional: Publish to dashboard
+    if args.publish_dashboard:
+        publish_to_dashboard(args.publish_dashboard, business_dates, mior_status,
+                             wss_status, ess_status, rules_engine_date)
 
     print("\nDone!")
 

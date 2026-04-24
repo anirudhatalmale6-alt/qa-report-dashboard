@@ -292,6 +292,51 @@ function parseCSVLine(line) {
   return result;
 }
 
+// ===========================
+// ENVIRONMENT DATES API ENDPOINTS
+// ===========================
+
+// API: get latest environment dates
+app.get("/api/env-dates/latest", (req, res) => {
+  const latestPath = path.join(REPORTS_DIR, "EnvDates", "latest.json");
+  if (!fs.existsSync(latestPath)) {
+    return res.json(null);
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(latestPath, "utf-8"));
+    res.json(data);
+  } catch (e) {
+    res.json(null);
+  }
+});
+
+// API: list all env dates history files
+app.get("/api/env-dates/history", (req, res) => {
+  const envDir = path.join(REPORTS_DIR, "EnvDates");
+  if (!fs.existsSync(envDir)) {
+    return res.json([]);
+  }
+  const files = fs.readdirSync(envDir)
+    .filter(f => f.startsWith("env_dates_") && f.endsWith(".json"))
+    .sort()
+    .reverse();
+  res.json(files.map(f => f.replace("env_dates_", "").replace(".json", "")));
+});
+
+// API: get specific date's env data
+app.get("/api/env-dates/:date", (req, res) => {
+  const filePath = path.join(REPORTS_DIR, "EnvDates", `env_dates_${req.params.date}.json`);
+  if (!fs.existsSync(filePath)) {
+    return res.json(null);
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    res.json(data);
+  } catch (e) {
+    res.json(null);
+  }
+});
+
 // Serve AI Tools page
 app.use("/ai-tools", express.static(path.join(__dirname, "ai-tools")));
 app.get("/ai", (req, res) => {
