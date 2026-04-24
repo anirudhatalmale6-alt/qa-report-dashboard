@@ -108,10 +108,16 @@ def run_locust_scripts():
         processes.append((script, proc))
         time.sleep(10)  # stagger starts like Run_Locust.ps1
 
-    print("Waiting for Locust scripts to finish...")
+    print("Waiting for Locust scripts to finish (max 35 min)...")
+    max_wait = 35 * 60  # 35 minutes safety timeout
     for script, proc in processes:
-        proc.wait()
-        print(f"  {script} finished (exit code: {proc.returncode})")
+        try:
+            proc.wait(timeout=max_wait)
+            print(f"  {script} finished (exit code: {proc.returncode})")
+        except subprocess.TimeoutExpired:
+            print(f"  {script} timed out after 35 min - killing process")
+            proc.kill()
+            proc.wait()
 
     print("All Locust scripts completed.\n")
 
