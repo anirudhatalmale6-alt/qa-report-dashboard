@@ -337,6 +337,61 @@ app.get("/api/env-dates/:date", (req, res) => {
   }
 });
 
+// ===========================
+// TOOLS API ENDPOINTS
+// ===========================
+
+// API: get healthcare rate update CSV data
+app.get("/api/tools/healthcare-rate-update/data", (req, res) => {
+  const csvPath = path.join(REPORTS_DIR, "Tools", "HealthcareRateUpdate", "sample_data.csv");
+  if (!fs.existsSync(csvPath)) {
+    return res.json({ headers: [], rows: [] });
+  }
+  let content = fs.readFileSync(csvPath, "utf-8");
+  if (content.charCodeAt(0) === 0xFEFF) content = content.slice(1);
+  const lines = content.split("\n").filter(l => l.trim());
+  if (lines.length === 0) return res.json({ headers: [], rows: [] });
+
+  const headers = parseCSVLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = values[idx] || ""; });
+    rows.push(row);
+  }
+  res.json({ headers, rows });
+});
+
+// API: list healthcare rate update execution runs
+app.get("/api/tools/healthcare-rate-update/runs", (req, res) => {
+  const runsDir = path.join(REPORTS_DIR, "Tools", "HealthcareRateUpdate", "runs");
+  if (!fs.existsSync(runsDir)) return res.json([]);
+
+  const entries = fs.readdirSync(runsDir, { withFileTypes: true })
+    .filter(d => d.isDirectory())
+    .map(d => {
+      const summaryPath = path.join(runsDir, d.name, "summary.json");
+      let summary = {};
+      if (fs.existsSync(summaryPath)) {
+        try { summary = JSON.parse(fs.readFileSync(summaryPath, "utf-8")); } catch(e) {}
+      }
+      return {
+        id: d.name,
+        date: summary.date || parseRunDate(d.name),
+        totalProducts: summary.totalProducts || 0,
+        updated: summary.updated || 0,
+        audited: summary.audited || 0,
+        failed: summary.failed || 0,
+        status: summary.status || "unknown",
+        environment: summary.environment || "N/A"
+      };
+    });
+
+  entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+  res.json(entries);
+});
+
 // Serve AI Tools page
 app.use("/ai-tools", express.static(path.join(__dirname, "ai-tools")));
 app.get("/ai", (req, res) => {

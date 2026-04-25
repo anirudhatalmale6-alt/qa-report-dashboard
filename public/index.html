@@ -413,6 +413,129 @@
   .env-timestamp { color: #8b949e; font-size: 12px; }
   .status-empty { color: #484f58; }
 
+  /* Tool Info Banner */
+  .tool-info-banner {
+    background: linear-gradient(135deg, #d2a8ff10, #58a6ff10);
+    border: 1px solid #d2a8ff30;
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  .tool-info-icon { font-size: 32px; flex-shrink: 0; }
+  .tool-info-text h3 { font-size: 16px; color: #d2a8ff; margin-bottom: 4px; font-weight: 600; }
+  .tool-info-text p { font-size: 13px; color: #8b949e; line-height: 1.5; }
+
+  /* Workflow Steps */
+  .workflow-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    padding: 20px;
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+  }
+  .wf-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .wf-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #21262d;
+    border: 2px solid #30363d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #484f58;
+  }
+  .wf-step.wf-done .wf-num { background: #3fb95020; border-color: #3fb950; color: #3fb950; }
+  .wf-step.wf-active .wf-num { background: #58a6ff20; border-color: #58a6ff; color: #58a6ff; }
+  .wf-label { font-size: 11px; color: #484f58; white-space: nowrap; font-weight: 500; }
+  .wf-step.wf-done .wf-label { color: #3fb950; }
+  .wf-step.wf-active .wf-label { color: #58a6ff; }
+  .wf-connector { width: 60px; height: 2px; background: #21262d; margin: 0 12px; margin-bottom: 24px; }
+  .wf-step.wf-done + .wf-connector { background: #3fb95060; }
+
+  /* Medicare Status Tabs */
+  .medicare-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    background: #161b22;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid #21262d;
+    flex-wrap: wrap;
+  }
+  .med-tab {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: #8b949e;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    font-weight: 500;
+  }
+  .med-tab:hover { color: #c9d1d9; background: #21262d; }
+  .med-tab.active { background: #d2a8ff20; color: #d2a8ff; font-weight: 600; }
+
+  /* Premium Table */
+  .premium-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .premium-table th {
+    background: #1c2129;
+    color: #8b949e;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 2px solid #d2a8ff30;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+  }
+  .premium-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #21262d;
+    color: #c9d1d9;
+  }
+  .premium-table tr:hover td { background: #1c212980; }
+  .premium-table-wrap {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    overflow: auto;
+    max-height: 500px;
+  }
+  .system-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #21262d;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #58a6ff;
+    letter-spacing: 0.5px;
+  }
+  .audit-yes { color: #d29922; font-weight: 600; }
+  .audit-no { color: #3fb950; font-weight: 600; }
+
   /* Report Modal (Allure iframe popup) */
   .report-overlay {
     display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -540,6 +663,9 @@
 
   <div class="sidebar-label">Environment</div>
   <div class="nav-l1" onclick="loadEnvDates(this)" style="color:#58a6ff;">Environment Dates</div>
+
+  <div class="sidebar-label">Tools</div>
+  <div class="nav-l1" onclick="loadHealthcareRateUpdate(this)" style="color:#d2a8ff;">Healthcare Rate Update</div>
 </nav>
 
 <div class="main">
@@ -1181,6 +1307,246 @@ function renderEnvDatesTable(data, selectHtml) {
 
   html += '</tbody></table>';
   content.innerHTML = html;
+}
+
+// ===========================
+// Healthcare Rate Update Tool
+// ===========================
+
+var _premiumData = [];
+var _currentMedicareTab = 'None';
+
+async function loadHealthcareRateUpdate(el) {
+  document.querySelectorAll('.nav-l2, .nav-l3').forEach(function(n) { n.classList.remove('active'); });
+
+  var breadcrumb = document.getElementById('breadcrumb');
+  var content = document.getElementById('content');
+  breadcrumb.innerHTML = '<span>Tools</span> / <span>Healthcare Rate Update</span>';
+  content.innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
+
+  try {
+    var dataRes = await fetch('/api/tools/healthcare-rate-update/data');
+    var runsRes = await fetch('/api/tools/healthcare-rate-update/runs');
+    var data = await dataRes.json();
+    var runs = await runsRes.json();
+
+    var rows = data.rows || [];
+    _premiumData = rows;
+
+    var uniqueProducts = [];
+    var uniqueSystems = [];
+    var seen = {};
+    var seenSys = {};
+    rows.forEach(function(r) {
+      var p = r['Product Name'];
+      var s = r['Retirement System'];
+      if (p && !seen[p]) { uniqueProducts.push(p); seen[p] = true; }
+      if (s && !seenSys[s]) { uniqueSystems.push(s); seenSys[s] = true; }
+    });
+    var effectiveDate = rows.length > 0 ? (rows[0]['Effective Date'] || 'N/A') : 'N/A';
+    var auditYes = rows.filter(function(r) { return r['Audit Status'] === 'Yes'; }).length;
+
+    var html = '';
+
+    // Info banner
+    html += '<div class="tool-info-banner">';
+    html += '<div class="tool-info-icon">&#9881;</div>';
+    html += '<div class="tool-info-text">';
+    html += '<h3>Healthcare Rate Update</h3>';
+    html += '<p>Automates insurance premium changes in MIORS across all products, retirement systems, and Medicare statuses. Upload a CSV with new rates, execute the automation to update premiums, then audit the changes - all tracked in one place.</p>';
+    html += '</div>';
+    html += '</div>';
+
+    // Stats cards
+    html += '<div class="stats-row">';
+    html += '<div class="stat-card" style="border-top:2px solid #d2a8ff"><div class="value" style="color:#d2a8ff">' + uniqueProducts.length + '</div><div class="label">Products</div></div>';
+    html += '<div class="stat-card runs"><div class="value">' + rows.length + '</div><div class="label">Total Records</div></div>';
+    html += '<div class="stat-card rate"><div class="value">' + uniqueSystems.length + '</div><div class="label">Retirement Systems</div></div>';
+    html += '<div class="stat-card passed"><div class="value">' + auditYes + '/' + rows.length + '</div><div class="label">Audit Required</div></div>';
+    html += '</div>';
+
+    // Workflow steps
+    html += '<div class="workflow-steps">';
+    html += '<div class="wf-step wf-done"><div class="wf-num">1</div><div class="wf-label">Upload CSV</div></div>';
+    html += '<div class="wf-connector"></div>';
+    html += '<div class="wf-step wf-active"><div class="wf-num">2</div><div class="wf-label">Update Premiums</div></div>';
+    html += '<div class="wf-connector"></div>';
+    html += '<div class="wf-step"><div class="wf-num">3</div><div class="wf-label">Audit Changes</div></div>';
+    html += '<div class="wf-connector"></div>';
+    html += '<div class="wf-step"><div class="wf-num">4</div><div class="wf-label">Complete</div></div>';
+    html += '</div>';
+
+    // Premium data header
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:12px;">';
+    html += '<div class="section-title">Premium Data Preview</div>';
+    html += '<div style="display:flex;gap:12px;align-items:center;">';
+    html += '<span style="color:#8b949e;font-size:13px;">Effective: <strong style="color:#d2a8ff">' + effectiveDate + '</strong></span>';
+    html += '<label class="btn-open" style="cursor:pointer;margin:0;"><input type="file" accept=".csv" style="display:none" onchange="handlePremiumCSVUpload(this)">&#11014; Upload CSV</label>';
+    html += '</div></div>';
+
+    // Medicare status tabs
+    html += '<div class="medicare-tabs" id="medicareTabs">';
+    html += '<button class="med-tab active" onclick="switchMedicareTab(\'None\',this)">None</button>';
+    html += '<button class="med-tab" onclick="switchMedicareTab(\'NonMedicare\',this)">Non-Medicare</button>';
+    html += '<button class="med-tab" onclick="switchMedicareTab(\'Medicare\',this)">Medicare</button>';
+    html += '<button class="med-tab" onclick="switchMedicareTab(\'NotApplicable\',this)">Not Applicable</button>';
+    html += '<button class="med-tab" onclick="switchMedicareTab(\'MPSERS\',this)">MPSERS</button>';
+    html += '</div>';
+
+    // Premium table container
+    html += '<div id="premiumTableWrap"></div>';
+
+    // Execution history
+    html += '<div style="margin-top:32px;">';
+    html += '<div class="section-header"><div class="section-title">Execution History</div><div class="section-badge">' + runs.length + ' run' + (runs.length !== 1 ? 's' : '') + '</div></div>';
+
+    if (runs.length === 0) {
+      html += '<div style="background:#161b22;border:1px solid #21262d;border-radius:10px;padding:32px;text-align:center;color:#8b949e;">';
+      html += '<div style="font-size:28px;margin-bottom:8px;">&#128337;</div>';
+      html += '<p>No executions yet. Upload a CSV and run the automation to see results here.</p>';
+      html += '<p style="margin-top:8px;font-size:12px;color:#484f58;">Runs are tracked automatically when the test script executes.</p>';
+      html += '</div>';
+    } else {
+      runs.forEach(function(run) {
+        var date = new Date(run.date).toLocaleString();
+        var statusClass = run.status === 'passed' ? 'passed' : (run.status === 'failed' ? 'failed' : 'passed');
+        var statusIcon = run.status === 'passed' ? '&#10003;' : (run.status === 'failed' ? '&#10007;' : '&#8635;');
+
+        html += '<div class="run-card">';
+        html += '<div class="run-status-icon ' + statusClass + '">' + statusIcon + '</div>';
+        html += '<div class="run-info"><div class="run-date">' + date + '</div><div class="run-id">' + run.id + ' &middot; ' + run.environment + '</div></div>';
+        html += '<div class="run-stats">';
+        html += '<div class="run-stat p"><div class="num">' + run.updated + '</div><div class="lbl">Updated</div></div>';
+        html += '<div class="run-stat t"><div class="num">' + run.audited + '</div><div class="lbl">Audited</div></div>';
+        html += '<div class="run-stat f"><div class="num">' + run.failed + '</div><div class="lbl">Failed</div></div>';
+        html += '</div>';
+        html += '</div>';
+      });
+    }
+    html += '</div>';
+
+    content.innerHTML = html;
+
+    // Render the default tab
+    _currentMedicareTab = 'None';
+    renderPremiumTable('None');
+
+  } catch(err) {
+    content.innerHTML = '<div style="padding:40px;color:#f85149;text-align:center;">Error: ' + err.message + '</div>';
+  }
+}
+
+function switchMedicareTab(status, el) {
+  document.querySelectorAll('.med-tab').forEach(function(t) { t.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  _currentMedicareTab = status;
+  renderPremiumTable(status);
+}
+
+function renderPremiumTable(status) {
+  var rows = _premiumData || [];
+  var categories = ['Self', 'Spouse', 'Parent', 'Child_0_17', 'Child_18_24', 'Child_25_99'];
+  var catLabels = ['Self', 'Spouse', 'Parent', 'Child 0-17', 'Child 18-24', 'Child 25-99'];
+
+  var html = '<div class="premium-table-wrap"><table class="premium-table"><thead><tr>';
+  html += '<th>#</th><th>Product Name</th><th>System</th><th>Eff. Date</th>';
+  catLabels.forEach(function(l) { html += '<th style="text-align:right">' + l + '</th>'; });
+  html += '<th>Audit</th></tr></thead><tbody>';
+
+  var visibleCount = 0;
+  rows.forEach(function(row, i) {
+    var hasData = false;
+    categories.forEach(function(cat) {
+      var key = cat + '_' + status;
+      var val = row[key];
+      if (val !== undefined && val !== '') hasData = true;
+    });
+
+    var rowOpacity = hasData ? '' : ' style="opacity:0.35"';
+    if (hasData) visibleCount++;
+
+    html += '<tr' + rowOpacity + '>';
+    html += '<td style="color:#484f58;font-size:12px">' + (i + 1) + '</td>';
+    html += '<td style="color:#f0f6fc;font-weight:500;white-space:nowrap;max-width:250px;overflow:hidden;text-overflow:ellipsis" title="' + (row['Product Name'] || '').replace(/"/g, '&quot;') + '">' + (row['Product Name'] || '') + '</td>';
+    html += '<td><span class="system-badge">' + (row['Retirement System'] || '') + '</span></td>';
+    html += '<td style="color:#8b949e;white-space:nowrap">' + (row['Effective Date'] || '') + '</td>';
+
+    categories.forEach(function(cat) {
+      var key = cat + '_' + status;
+      var val = row[key];
+      if (val !== undefined && val !== '') {
+        var numVal = parseFloat(val);
+        var color = numVal === 0 ? '#3fb950' : '#e1e4e8';
+        html += '<td style="text-align:right;color:' + color + ';font-weight:500;font-variant-numeric:tabular-nums">$' + numVal.toFixed(2) + '</td>';
+      } else {
+        html += '<td style="text-align:right;color:#30363d">&#8212;</td>';
+      }
+    });
+
+    var audit = row['Audit Status'] || '';
+    var auditCls = audit === 'Yes' ? 'audit-yes' : 'audit-no';
+    html += '<td><span class="' + auditCls + '">' + audit + '</span></td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  html += '<div style="margin-top:8px;font-size:12px;color:#484f58;">' + visibleCount + ' of ' + rows.length + ' records have data for ' + status + ' status</div>';
+
+  document.getElementById('premiumTableWrap').innerHTML = html;
+}
+
+function handlePremiumCSVUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var content = e.target.result;
+    if (content.charCodeAt(0) === 0xFEFF) content = content.substring(1);
+    var lines = content.split('\n').filter(function(l) { return l.trim(); });
+    if (lines.length === 0) return;
+
+    var headers = clientParseCSV(lines[0]);
+    var rows = [];
+    for (var i = 1; i < lines.length; i++) {
+      var values = clientParseCSV(lines[i]);
+      var row = {};
+      headers.forEach(function(h, idx) { row[h] = values[idx] || ''; });
+      rows.push(row);
+    }
+    _premiumData = rows;
+
+    // Re-render stats
+    var uniqueProducts = [];
+    var seen = {};
+    rows.forEach(function(r) {
+      var p = r['Product Name'];
+      if (p && !seen[p]) { uniqueProducts.push(p); seen[p] = true; }
+    });
+    var cards = document.querySelectorAll('.stat-card .value');
+    if (cards.length >= 2) { cards[0].textContent = uniqueProducts.length; cards[1].textContent = rows.length; }
+
+    renderPremiumTable(_currentMedicareTab);
+  };
+  reader.readAsText(input.files[0]);
+}
+
+function clientParseCSV(line) {
+  var result = [];
+  var current = '';
+  var inQuotes = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
 }
 </script>
 
