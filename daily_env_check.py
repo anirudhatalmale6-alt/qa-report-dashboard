@@ -220,7 +220,23 @@ def get_rules_engine_date():
 # =============================================================================
 
 def read_status_file(filepath):
-    """Read a status .txt file and return dict of {env: value}."""
+    """Read a status .txt file and return dict of {env: value}.
+
+    If an environment appears multiple times, keep the most informative status:
+    Down > MiLogin > Bad Login > any non-OK value > OK
+    This prevents a later "OK" line from overwriting a "MiLogin" or "Down" entry.
+    """
+    STATUS_PRIORITY = {"down": 4, "bad login": 3, "milogin": 2}
+
+    def status_priority(val):
+        v = str(val).lower().strip()
+        for key, pri in STATUS_PRIORITY.items():
+            if key in v:
+                return pri
+        if v == "ok":
+            return 0
+        return 1  # unknown non-OK status
+
     results = {}
     if not os.path.exists(filepath):
         print(f"WARNING: {filepath} not found")
@@ -236,7 +252,11 @@ def read_status_file(filepath):
                 env = parts[0].strip()
                 val = parts[1].strip()
                 if env:
-                    results[env] = val
+                    if env in results:
+                        if status_priority(val) > status_priority(results[env]):
+                            results[env] = val
+                    else:
+                        results[env] = val
 
     return results
 
@@ -416,12 +436,17 @@ def publish_to_dashboard(dashboard_reports_dir, business_dates, mior_status,
 
     environments = []
     for env in ENV_ORDER:
+        biz = business_dates.get(env, "N/A")
+        miors = parse_miors_date(mior_status.get(env, ""))
+        wss = wss_status.get(env, "N/A")
+        ess = ess_status.get(env, "N/A")
+        print(f"  {env}: biz={biz}, miors={miors}, wss={wss}, ess={ess}")
         environments.append({
             "env": env,
-            "businessDate": business_dates.get(env, "N/A"),
-            "miorsDate": parse_miors_date(mior_status.get(env, "")),
-            "wssStatus": wss_status.get(env, "N/A"),
-            "essStatus": ess_status.get(env, "N/A"),
+            "businessDate": biz,
+            "miorsDate": miors,
+            "wssStatus": wss,
+            "essStatus": ess,
             "assignment": ASSIGNMENTS.get(env, ""),
         })
 
@@ -494,6 +519,15 @@ def main():
     wss_status = read_status_file(WSS_STATUS_FILE)
     ess_status = read_status_file(ESS_STATUS_FILE)
     print(f"  MIORS: {len(mior_status)} envs, WSS: {len(wss_status)} envs, ESS: {len(ess_status)} envs")
+
+    # Fill missing business dates from MIORS dates as fallback (e.g. TT)
+    for env in ENV_ORDER:
+        if env not in business_dates or not business_dates[env] or business_dates[env] == "N/A":
+            miors_raw = mior_status.get(env, "")
+            miors_parsed = parse_miors_date(miors_raw)
+            if miors_parsed and miors_parsed != "#N/A":
+                print(f"  {env}: business date missing, using MIORS date as fallback: {miors_parsed}")
+                business_dates[env] = miors_parsed
 
     # Step 4: Build HTML email
     print("[Step 4/5] Building HTML email...")
