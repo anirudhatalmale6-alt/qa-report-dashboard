@@ -10,6 +10,90 @@ app.use("/dashboard", express.static(path.join(__dirname, "public")));
 app.use("/reports", express.static(REPORTS_DIR));
 
 // ===========================
+// DASHBOARD AGGREGATE API
+// ===========================
+
+// API: get all runs across all systems/projects for dashboard home
+app.get("/api/dashboard/all-runs", (req, res) => {
+  const systems = ["ESS", "CLT", "WSS"];
+  const projects = ["App_Migration", "ADA", "Maintenance"];
+  const allRuns = [];
+
+  for (const sys of systems) {
+    for (const proj of projects) {
+      const projDir = path.join(REPORTS_DIR, sys, proj);
+      if (!fs.existsSync(projDir)) continue;
+
+      const entries = fs.readdirSync(projDir, { withFileTypes: true })
+        .filter(d => d.isDirectory() && /^\d{8}/.test(d.name));
+
+      for (const entry of entries) {
+        const summaryPath = path.join(projDir, entry.name, "summary.json");
+        let summary = null;
+        if (fs.existsSync(summaryPath)) {
+          try { summary = JSON.parse(fs.readFileSync(summaryPath, "utf-8")); } catch(e) {}
+        }
+        const stats = summary?.stats || {};
+        const passed = stats.passed || 0;
+        const failed = stats.failed || 0;
+        const broken = stats.broken || 0;
+        const skipped = stats.skipped || 0;
+        const total = stats.total || 0;
+        const duration = summary?.duration || 0;
+
+        allRuns.push({
+          id: entry.name,
+          system: sys,
+          project: proj,
+          date: parseRunDate(entry.name),
+          passed, failed, broken, skipped, total, duration,
+          status: (failed > 0 || broken > 0) ? "failed" : "passed",
+          reportUrl: `/reports/${sys}/${proj}/${entry.name}/index.html`
+        });
+      }
+    }
+  }
+
+  // Also scan performance runs
+  const perfRuns = [];
+  for (const sys of systems) {
+    for (const proj of projects) {
+      const projDir = path.join(REPORTS_DIR, "Performance", sys, proj);
+      if (!fs.existsSync(projDir)) continue;
+      const scripts = fs.readdirSync(projDir, { withFileTypes: true }).filter(d => d.isDirectory());
+      for (const script of scripts) {
+        const scriptDir = path.join(projDir, script.name);
+        const runs = fs.readdirSync(scriptDir, { withFileTypes: true })
+          .filter(d => d.isDirectory() && /^\d{8}/.test(d.name));
+        for (const run of runs) {
+          const summaryPath = path.join(scriptDir, run.name, "summary.json");
+          let summary = {};
+          if (fs.existsSync(summaryPath)) {
+            try { summary = JSON.parse(fs.readFileSync(summaryPath, "utf-8")); } catch(e) {}
+          }
+          perfRuns.push({
+            id: run.name,
+            system: sys,
+            project: proj,
+            script: script.name,
+            date: summary.date || parseRunDate(run.name),
+            totalRequests: summary.totalRequests || 0,
+            totalFailures: summary.totalFailures || 0,
+            avgResponseTime: summary.avgResponseTime || 0,
+            status: (summary.totalFailures || 0) > 0 ? "failed" : "passed"
+          });
+        }
+      }
+    }
+  }
+
+  allRuns.sort((a, b) => new Date(b.date) - new Date(a.date));
+  perfRuns.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  res.json({ functional: allRuns, performance: perfRuns });
+});
+
+// ===========================
 // PERFORMANCE TEST API ENDPOINTS (must be before generic :app/:project routes)
 // ===========================
 
