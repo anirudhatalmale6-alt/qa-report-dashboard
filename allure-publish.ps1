@@ -38,28 +38,113 @@ Write-Host "Publishing report to: $destDir"
 New-Item -ItemType Directory -Path $destDir -Force | Out-Null
 Copy-Item -Path "$ReportPath\*" -Destination $destDir -Recurse -Force
 
-# Extract summary from the Allure report's widgets/summary.json
+# Extract summary - supports both Allure 2 (widgets/summary.json) and Allure 3 (root summary.json + widgets/statistic.json)
+$summaryExtracted = $false
+
+# --- Allure 2: widgets/summary.json ---
 $widgetSummary = Join-Path -Path (Join-Path -Path $ReportPath -ChildPath "widgets") -ChildPath "summary.json"
 if (Test-Path $widgetSummary) {
     $data = Get-Content $widgetSummary -Raw | ConvertFrom-Json
-    $stats = $data.statistic
-    $summary = @{
-        name = "Allure Report"
-        stats = @{
-            total = [int]($stats.total)
-            passed = [int]($stats.passed)
-            failed = [int]($stats.failed)
-            broken = [int]($stats.broken)
-            skipped = [int]($stats.skipped)
-            unknown = [int]($stats.unknown)
+    if ($data.statistic) {
+        $stats = $data.statistic
+        $summary = @{
+            name = "Allure Report"
+            stats = @{
+                total = [int]($stats.total)
+                passed = [int]($stats.passed)
+                failed = [int]($stats.failed)
+                broken = [int]($stats.broken)
+                skipped = [int]($stats.skipped)
+                unknown = [int]($stats.unknown)
+            }
+            duration = [long]($data.time.duration)
         }
-        duration = [long]($data.time.duration)
+        $summaryJson = $summary | ConvertTo-Json -Depth 3
+        Set-Content -Path (Join-Path $destDir "summary.json") -Value $summaryJson
+        Write-Host "Summary extracted (Allure 2): $($stats.total) total, $($stats.passed) passed, $($stats.failed) failed"
+        $summaryExtracted = $true
     }
-    $summaryJson = $summary | ConvertTo-Json -Depth 3
-    Set-Content -Path (Join-Path $destDir "summary.json") -Value $summaryJson
-    Write-Host "Summary extracted: $($stats.total) total, $($stats.passed) passed, $($stats.failed) failed"
-} else {
-    Write-Host "WARNING: No widgets/summary.json found in report. Dashboard stats may be empty."
+}
+
+# --- Allure 3: root summary.json + widgets/statistic.json + widgets/charts.json ---
+if (-not $summaryExtracted) {
+    $rootSummary = Join-Path $ReportPath "summary.json"
+    $widgetStatistic = Join-Path -Path (Join-Path -Path $ReportPath -ChildPath "widgets") -ChildPath "statistic.json"
+    $widgetCharts = Join-Path -Path (Join-Path -Path $ReportPath -ChildPath "widgets") -ChildPath "charts.json"
+
+    $total = 0; $passed = 0; $failed = 0; $broken = 0; $skipped = 0; $unknown = 0; $duration = 0
+
+    # Try widgets/statistic.json first - may have per-status counts
+    if (Test-Path $widgetStatistic) {
+        $statData = Get-Content $widgetStatistic -Raw | ConvertFrom-Json
+        $total = if ($statData.total) { [int]$statData.total } else { 0 }
+        $passed = if ($statData.passed) { [int]$statData.passed } else { 0 }
+        $failed = if ($statData.failed) { [int]$statData.failed } else { 0 }
+        $broken = if ($statData.broken) { [int]$statData.broken } else { 0 }
+        $skipped = if ($statData.skipped) { [int]$statData.skipped } else { 0 }
+        $unknown = if ($statData.unknown) { [int]$statData.unknown } else { 0 }
+        Write-Host "  Found widgets/statistic.json (total=$total)"
+    }
+
+    # If statistic.json only had total, try charts.json for per-status breakdown
+    if ($total -gt 0 -and ($passed + $failed + $broken + $skipped + $unknown) -eq 0) {
+        if (Test-Path $widgetCharts) {
+            $chartsData = Get-Content $widgetCharts -Raw | ConvertFrom-Json
+            $generalWidgets = $chartsData.general.PSObject.Properties
+            foreach ($widget in $generalWidgets) {
+                if ($widget.Value.type -eq "testResultSeverities" -and $widget.Value.data) {
+                    foreach ($sev in $widget.Value.data) {
+                        $passed += [int]$sev.passed
+                        $failed += [int]$sev.failed
+                        $broken += [int]$sev.broken
+                        $skipped += [int]$sev.skipped
+                        $unknown += [int]$sev.unknown
+                    }
+                    Write-Host "  Extracted per-status counts from charts.json severities"
+                    break
+                }
+            }
+        }
+    }
+
+    # Get duration from root summary.json
+    if (Test-Path $rootSummary) {
+        $rootData = Get-Content $rootSummary -Raw | ConvertFrom-Json
+        if ($rootData.duration) { $duration = [long]$rootData.duration }
+        # Root summary may also have detailed stats
+        if ($rootData.stats -and $rootData.stats.passed) {
+            $passed = [int]$rootData.stats.passed
+            $failed = if ($rootData.stats.failed) { [int]$rootData.stats.failed } else { 0 }
+            $broken = if ($rootData.stats.broken) { [int]$rootData.stats.broken } else { 0 }
+            $skipped = if ($rootData.stats.skipped) { [int]$rootData.stats.skipped } else { 0 }
+            $unknown = if ($rootData.stats.unknown) { [int]$rootData.stats.unknown } else { 0 }
+            $total = if ($rootData.stats.total) { [int]$rootData.stats.total } else { $passed + $failed + $broken + $skipped + $unknown }
+        }
+    }
+
+    if ($total -gt 0 -or (Test-Path $widgetStatistic) -or (Test-Path $rootSummary)) {
+        $summary = @{
+            name = "Allure Report"
+            stats = @{
+                total = $total
+                passed = $passed
+                failed = $failed
+                broken = $broken
+                skipped = $skipped
+                unknown = $unknown
+            }
+            duration = $duration
+        }
+        $summaryJson = $summary | ConvertTo-Json -Depth 3
+        Set-Content -Path (Join-Path $destDir "summary.json") -Value $summaryJson
+        Write-Host "Summary extracted (Allure 3): $total total, $passed passed, $failed failed, $broken broken, $skipped skipped"
+        $summaryExtracted = $true
+    }
+}
+
+if (-not $summaryExtracted) {
+    Write-Host "WARNING: Could not extract summary from report. Dashboard stats will be empty."
+    Write-Host "  Checked: widgets/summary.json, summary.json, widgets/statistic.json, widgets/charts.json"
 }
 
 # Copy results CSV files if they exist
