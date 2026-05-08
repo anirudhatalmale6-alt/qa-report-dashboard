@@ -1004,13 +1004,14 @@ async function openResultsInline(app, project, runId) {
       else displayStatus = 'Not Executed';
       var testMethod = row['TestMethod'] || '';
       var stats = memberStats[testMethod] || { passed: 0, failed: 0, broken: 0, total: 0 };
+      var showStats = (displayStatus !== 'Not Executed') && stats.total > 0;
       return {
         'TestName': row['TestName'] || '',
         'TestType': row['TestType'] || '',
         'Status': displayStatus,
-        'Passed': stats.total > 0 ? stats.passed : '',
-        'Failed': stats.total > 0 ? stats.failed : '',
-        'Broken': stats.total > 0 ? stats.broken : '',
+        'Passed': showStats ? stats.passed : '',
+        'Failed': showStats ? stats.failed : '',
+        'Broken': showStats ? stats.broken : '',
         'Timestamp': row['Timestamp'] || row['TimeStamp'] || ''
       };
     });
