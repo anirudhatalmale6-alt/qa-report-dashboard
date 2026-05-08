@@ -792,6 +792,33 @@ function renderDashboard() {
 
   html += '</div>';
 
+  // Performance (Locust) runs section
+  var perfRuns = data.performance;
+  if (perfRuns.length > 0) {
+    html += '<div class="runs-card" style="margin-top:20px;">';
+    html += '<div class="runs-header"><div class="table-card-title">Performance Test Runs (Locust)</div><div style="font-size:11px;color:#8b949e;">' + perfRuns.length + ' runs</div></div>';
+    html += '<div class="runs-table-wrap"><table class="runs-table"><thead><tr>';
+    html += '<th>Status</th><th>System</th><th>Project</th><th>Script</th><th>Date</th><th>Requests</th><th>Failures</th><th>Avg RT</th><th>Pass Rate</th>';
+    html += '</tr></thead><tbody>';
+    perfRuns.slice(0, 50).forEach(function(r) {
+      var dt = new Date(r.date);
+      var dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' + dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      var passRate = r.totalRequests > 0 ? (((r.totalRequests - r.totalFailures) / r.totalRequests) * 100).toFixed(1) : '0.0';
+      html += '<tr>';
+      html += '<td><span class="status-dot ' + r.status + '"></span> ' + r.status + '</td>';
+      html += '<td><span class="sys-badge">' + r.system + '</span></td>';
+      html += '<td>' + r.project + '</td>';
+      html += '<td>' + r.script + '</td>';
+      html += '<td>' + dateStr + '</td>';
+      html += '<td class="num-col">' + r.totalRequests + '</td>';
+      html += '<td class="num-col" style="color:' + (r.totalFailures > 0 ? '#f85149' : '#3fb950') + '">' + r.totalFailures + '</td>';
+      html += '<td class="num-col">' + r.avgResponseTime + 'ms</td>';
+      html += '<td class="num-col" style="color:' + (parseFloat(passRate) >= 100 ? '#3fb950' : '#f85149') + '">' + passRate + '%</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+  }
+
   content.innerHTML = html;
 
   renderCharts(runs);
