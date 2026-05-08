@@ -54,34 +54,39 @@ app.get("/api/dashboard/all-runs", (req, res) => {
     }
   }
 
-  // Also scan performance runs
+  // Scan performance runs dynamically (reports/Performance/{sys}/{proj}/{script}/{run}/)
   const perfRuns = [];
-  for (const sys of systems) {
-    for (const proj of projects) {
-      const projDir = path.join(REPORTS_DIR, "Performance", sys, proj);
-      if (!fs.existsSync(projDir)) continue;
-      const scripts = fs.readdirSync(projDir, { withFileTypes: true }).filter(d => d.isDirectory());
-      for (const script of scripts) {
-        const scriptDir = path.join(projDir, script.name);
-        const runs = fs.readdirSync(scriptDir, { withFileTypes: true })
-          .filter(d => d.isDirectory() && /^\d{8}/.test(d.name));
-        for (const run of runs) {
-          const summaryPath = path.join(scriptDir, run.name, "summary.json");
-          let summary = {};
-          if (fs.existsSync(summaryPath)) {
-            try { summary = JSON.parse(fs.readFileSync(summaryPath, "utf-8")); } catch(e) {}
+  const perfDir = path.join(REPORTS_DIR, "Performance");
+  if (fs.existsSync(perfDir)) {
+    const perfSystems = fs.readdirSync(perfDir, { withFileTypes: true }).filter(d => d.isDirectory());
+    for (const sysEntry of perfSystems) {
+      const sysDir = path.join(perfDir, sysEntry.name);
+      const perfProjects = fs.readdirSync(sysDir, { withFileTypes: true }).filter(d => d.isDirectory());
+      for (const projEntry of perfProjects) {
+        const projDir = path.join(sysDir, projEntry.name);
+        const scripts = fs.readdirSync(projDir, { withFileTypes: true }).filter(d => d.isDirectory());
+        for (const script of scripts) {
+          const scriptDir = path.join(projDir, script.name);
+          const runs = fs.readdirSync(scriptDir, { withFileTypes: true })
+            .filter(d => d.isDirectory() && /^\d{8}/.test(d.name));
+          for (const run of runs) {
+            const summaryPath = path.join(scriptDir, run.name, "summary.json");
+            let summary = {};
+            if (fs.existsSync(summaryPath)) {
+              try { summary = JSON.parse(fs.readFileSync(summaryPath, "utf-8")); } catch(e) {}
+            }
+            perfRuns.push({
+              id: run.name,
+              system: sysEntry.name,
+              project: projEntry.name,
+              script: script.name,
+              date: summary.date || parseRunDate(run.name),
+              totalRequests: summary.totalRequests || 0,
+              totalFailures: summary.totalFailures || 0,
+              avgResponseTime: summary.avgResponseTime || 0,
+              status: (summary.totalFailures || 0) > 0 ? "failed" : "passed"
+            });
           }
-          perfRuns.push({
-            id: run.name,
-            system: sys,
-            project: proj,
-            script: script.name,
-            date: summary.date || parseRunDate(run.name),
-            totalRequests: summary.totalRequests || 0,
-            totalFailures: summary.totalFailures || 0,
-            avgResponseTime: summary.avgResponseTime || 0,
-            status: (summary.totalFailures || 0) > 0 ? "failed" : "passed"
-          });
         }
       }
     }
