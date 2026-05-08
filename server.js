@@ -15,41 +15,45 @@ app.use("/reports", express.static(REPORTS_DIR));
 
 // API: get all runs across all systems/projects for dashboard home
 app.get("/api/dashboard/all-runs", (req, res) => {
-  const systems = ["ESS", "CLT", "WSS"];
-  const projects = ["App_Migration", "ADA", "Maintenance"];
+  // Scan functional (Allure) runs dynamically from reports/{sys}/{proj}/{timestamp}/
   const allRuns = [];
+  const skipDirs = new Set(["Performance", "EnvDates", "Tools"]);
+  if (fs.existsSync(REPORTS_DIR)) {
+    const topDirs = fs.readdirSync(REPORTS_DIR, { withFileTypes: true })
+      .filter(d => d.isDirectory() && !skipDirs.has(d.name));
+    for (const sysEntry of topDirs) {
+      const sysDir = path.join(REPORTS_DIR, sysEntry.name);
+      const projDirs = fs.readdirSync(sysDir, { withFileTypes: true })
+        .filter(d => d.isDirectory());
+      for (const projEntry of projDirs) {
+        const projDir = path.join(sysDir, projEntry.name);
+        const entries = fs.readdirSync(projDir, { withFileTypes: true })
+          .filter(d => d.isDirectory() && /^\d{8}/.test(d.name));
 
-  for (const sys of systems) {
-    for (const proj of projects) {
-      const projDir = path.join(REPORTS_DIR, sys, proj);
-      if (!fs.existsSync(projDir)) continue;
+        for (const entry of entries) {
+          const summaryPath = path.join(projDir, entry.name, "summary.json");
+          let summary = null;
+          if (fs.existsSync(summaryPath)) {
+            try { summary = JSON.parse(fs.readFileSync(summaryPath, "utf-8")); } catch(e) {}
+          }
+          const stats = summary?.stats || {};
+          const passed = stats.passed || 0;
+          const failed = stats.failed || 0;
+          const broken = stats.broken || 0;
+          const skipped = stats.skipped || 0;
+          const total = stats.total || 0;
+          const duration = summary?.duration || 0;
 
-      const entries = fs.readdirSync(projDir, { withFileTypes: true })
-        .filter(d => d.isDirectory() && /^\d{8}/.test(d.name));
-
-      for (const entry of entries) {
-        const summaryPath = path.join(projDir, entry.name, "summary.json");
-        let summary = null;
-        if (fs.existsSync(summaryPath)) {
-          try { summary = JSON.parse(fs.readFileSync(summaryPath, "utf-8")); } catch(e) {}
+          allRuns.push({
+            id: entry.name,
+            system: sysEntry.name,
+            project: projEntry.name,
+            date: parseRunDate(entry.name),
+            passed, failed, broken, skipped, total, duration,
+            status: (failed > 0 || broken > 0) ? "failed" : "passed",
+            reportUrl: `/reports/${sysEntry.name}/${projEntry.name}/${entry.name}/index.html`
+          });
         }
-        const stats = summary?.stats || {};
-        const passed = stats.passed || 0;
-        const failed = stats.failed || 0;
-        const broken = stats.broken || 0;
-        const skipped = stats.skipped || 0;
-        const total = stats.total || 0;
-        const duration = summary?.duration || 0;
-
-        allRuns.push({
-          id: entry.name,
-          system: sys,
-          project: proj,
-          date: parseRunDate(entry.name),
-          passed, failed, broken, skipped, total, duration,
-          status: (failed > 0 || broken > 0) ? "failed" : "passed",
-          reportUrl: `/reports/${sys}/${proj}/${entry.name}/index.html`
-        });
       }
     }
   }
