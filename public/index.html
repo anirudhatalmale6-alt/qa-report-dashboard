@@ -1046,7 +1046,7 @@ async function openResultsInline(app, project, runId) {
     currentResultsData = { headers: displayHeaders, rows: mappedRows };
 
     var panelHtml = '<div class="inline-panel-header"><div class="inline-panel-title">' + app + ' / ' + project.replace('_',' ') + ' - ' + runId + '</div><div class="inline-panel-actions"><button class="btn-close-panel" onclick="closeResultsPanel()">&times;</button></div></div>';
-    panelHtml += '<div class="results-toolbar"><input type="text" class="results-search" id="inlineResultsSearch" placeholder="Search tests..." oninput="filterInlineResults()"><select class="results-filter" id="inlineStatusFilter" onchange="filterInlineResults()"><option value="">All Statuses</option><option value="Pass">Pass</option><option value="Fail">Fail</option><option value="Broken">Broken</option><option value="Not Executed">Not Executed</option></select></div>';
+    panelHtml += '<div class="results-toolbar"><input type="text" class="results-search" id="inlineResultsSearch" placeholder="Search tests..." oninput="filterInlineResults()"><select class="results-filter" id="inlineStatusFilter" onchange="filterInlineResults()"><option value="">All Statuses</option><option value="Pass">Pass</option><option value="Fail">Fail</option><option value="Broken">Broken</option><option value="Not Executed">Not Executed</option></select><button class="btn-sm" style="margin-left:auto;background:#2da44e;color:#fff;border:none;cursor:pointer;padding:4px 12px;border-radius:6px;font-size:12px" onclick="downloadResultsCSV(\'' + app + '\',\'' + project + '\',\'' + runId + '\')">Download CSV</button></div>';
     panelHtml += '<div class="results-count" id="inlineResultsCount"></div>';
     panelHtml += '<div class="results-table-wrap"><table class="results-table"><thead id="inlineResultsHead"></thead><tbody id="inlineResultsBody"></tbody></table></div>';
 
@@ -1123,6 +1123,41 @@ function closeResultsPanel() {
   var panel = document.getElementById('resultsPanel');
   panel.classList.remove('active');
   panel.innerHTML = '';
+}
+
+async function downloadResultsCSV(app, project, runId) {
+  try {
+    var res = await fetch('/api/' + app + '/' + project + '/' + runId + '/csv-files');
+    var files = await res.json();
+    if (files.length === 0) {
+      if (currentResultsData) {
+        var csvContent = currentResultsData.headers.join(',') + '\n';
+        currentResultsData.rows.forEach(function(row) {
+          var line = currentResultsData.headers.map(function(h) {
+            var val = (row[h] || '').toString();
+            if (val.indexOf(',') >= 0 || val.indexOf('"') >= 0) return '"' + val.replace(/"/g, '""') + '"';
+            return val;
+          });
+          csvContent += line.join(',') + '\n';
+        });
+        var blob = new Blob([csvContent], { type: 'text/csv' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = app + '_' + project + '_' + runId + '_results.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+      return;
+    }
+    files.forEach(function(f) {
+      var a = document.createElement('a');
+      a.href = f.url;
+      a.download = f.name;
+      a.click();
+    });
+  } catch(err) {
+    alert('Download failed: ' + err.message);
+  }
 }
 
 // ===========================
